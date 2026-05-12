@@ -1,0 +1,31 @@
+{
+  "name": "supermetrics-marketing",
+  "description": "Battle-tested marketing analytics workflows for six personas — performance marketers, marketing leaders, demand gen, content, field, and ecommerce — built on top of the Supermetrics connector. 42 workflows total, with helper scripts, deliverable templates, and a consistent visualization framework.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Supermetrics",
+    "email": "support@supermetrics.com"
+  },
+  "homepage": "https://supermetrics.com",
+  "repository": "https://github.com/supermetrics-public/claude-marketing-plugin",
+  "license": "MIT",
+  "keywords": [
+    "marketing",
+    "analytics",
+    "advertising",
+    "supermetrics",
+    "performance-marketing",
+    "demand-gen",
+    "content-marketing",
+    "ecommerce",
+    "field-marketing",
+    "google-ads",
+    "facebook-ads",
+    "linkedin-ads",
+    "tiktok-ads",
+    "ga4",
+    "ROAS",
+    "CAC",
+    "LTV"
+  ]
+}

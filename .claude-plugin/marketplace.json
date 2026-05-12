@@ -1,0 +1,19 @@
+{
+  "name": "supermetrics",
+  "displayName": "Supermetrics",
+  "description": "Marketing analytics plugins built on top of the Supermetrics connector for Claude.",
+  "owner": {
+    "name": "Supermetrics",
+    "email": "support@supermetrics.com"
+  },
+  "homepage": "https://supermetrics.com",
+  "repository": "https://github.com/supermetrics-public/claude-marketing-plugin",
+  "plugins": [
+    {
+      "name": "supermetrics-marketing",
+      "path": "plugins/supermetrics-marketing",
+      "description": "Battle-tested marketing analytics workflows for six personas — performance marketers, marketing leaders, demand gen, content, field, and ecommerce — built on top of the Supermetrics connector. 42 workflows total, with helper scripts, deliverable templates, and a consistent visualization framework.",
+      "version": "1.0.0"
+    }
+  ]
+}
