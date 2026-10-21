@@ -11,7 +11,7 @@ Expected CSV columns (one row per target account):
     - tier (optional: Tier 1, Tier 2, etc.)
     - ad_impressions (LinkedIn account-based targeting impressions, etc.)
     - ad_clicks
-    - web_sessions (from GA4 with company identification, if available)
+    - web_sessions (from a reverse-IP / company-identification tool, if available)
     - meetings_booked (from CRM)
     - opportunity_status (none, open, closed-won, closed-lost)
     - opportunity_amount (optional)

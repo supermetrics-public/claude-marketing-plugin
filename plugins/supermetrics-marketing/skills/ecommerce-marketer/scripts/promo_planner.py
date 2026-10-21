@@ -27,9 +27,9 @@ import csv
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("input", help="Prior year promo CSV")
-    p.add_argument("--growth-pct", type=float, default=10.0, help="Assumed Y/Y growth (default: 10%)")
+    p.add_argument("--growth-pct", type=float, default=10.0, help="Assumed Y/Y growth (default: 10%%)")
     p.add_argument("--target-budget", type=float, default=None, help="Target promo budget (defaults to last year * (1+growth))")
-    p.add_argument("--aov-growth-pct", type=float, default=5.0, help="Assumed AOV growth (default: 5%)")
+    p.add_argument("--aov-growth-pct", type=float, default=5.0, help="Assumed AOV growth (default: 5%%)")
     p.add_argument("--output", default="-")
     return p.parse_args()
 

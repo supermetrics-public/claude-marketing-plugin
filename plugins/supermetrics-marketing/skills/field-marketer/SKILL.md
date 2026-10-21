@@ -13,9 +13,24 @@ These workflows rely on the **Supermetrics connector for Claude**. Pre-event ana
 
 Before running anything, check that the connector is active — look for Supermetrics tools (`data_query`, `accounts_discovery`, etc.). If they aren't present, prompt the user:
 
-> This workflow needs the Supermetrics connector for Claude. Install it at https://claude.ai/directory/connectors/cc599e7b-8c59-4e89-9bf0-36d47bb9ec80
+> This workflow needs the Supermetrics connector for Claude. It ships with this plugin — run `/mcp`, select **supermetrics** and sign in (a free trial account works). Then run `/supermetrics-marketing:setup` to connect your platforms.
 >
 > Connect at least one ad platform (LinkedIn Ads, Google Ads, or Facebook Ads). For geo-targeted analysis, make sure campaigns have location targeting so the data is available at the regional level.
+
+Webinar and event platforms (Zoom, ON24, Eventbrite, etc.) are not Supermetrics sources. Registration and attendance counts come from the user's export, or from a connected CRM or form tool (HubSpot, Salesforce).
+
+## Before you analyze
+
+- **Load the business profile.** Call `manage_business_context` (`get`) for saved targets, budgets and known context, and judge results against those rather than generic benchmarks (see the `business-profile` skill).
+- **Check tracking first.** If platform conversions and GA4 or backend numbers disagree by more than 20%, or spend continues with zero conversions, say so before any optimization advice. See `/supermetrics-marketing:tracking-check`.
+- **Evidence discipline:**
+  - Treat changes based on fewer than about 10 conversions as noise.
+  - Ignore items with under 1,000 impressions.
+  - Don't report new campaigns that are still in a learning phase as failures.
+  - Check whether campaigns share a budget before advising budget moves.
+  - If the user disputes a number, re-pull the data before conceding.
+- **Answer shape:** conclusion first, then business impact, then next actions. Close with a one-line-per-pull "How I got this".
+- **Acting on findings.** These workflows recommend; they don't change campaigns. If the user wants to apply a budget shift or extend a campaign, hand off to the `campaign-management` skill, which asks for explicit approval of each change.
 
 ## Core principles
 
@@ -80,17 +95,17 @@ For one-off questions outside the bundled workflows ("did email-driven signups o
 ## Other Claude capabilities to leverage
 
 **Built-in document skills.** When the deliverable is a file:
-- Word documents (post-event summaries, ROI memos) → use the `docx` skill at `/mnt/skills/public/docx/SKILL.md`
-- Spreadsheets (registration tracking, channel breakdowns) → use the `xlsx` skill at `/mnt/skills/public/xlsx/SKILL.md`
-- Slide decks (post-event leadership readouts) → use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md`
+- Word documents (post-event summaries, ROI memos) → the `docx` skill
+- Spreadsheets (registration tracking, channel breakdowns) → the `xlsx` skill
+- Slide decks (post-event leadership readouts) → the `pptx` skill
 
-Read the relevant SKILL.md before building.
+If one of these skills is available, read its SKILL.md before building.
 
 **Other connectors when they're available.** If the user has Slack connected, regional team updates can be posted to the right channel — this is often the natural delivery for field marketing communication. If Gmail is connected, sales-team updates can become drafts. If Google Calendar is connected, you can look up the event date directly rather than asking.
 
 **Web search.** Useful for industry event-marketing benchmarks (CPR norms by event type), competitive intelligence on what other companies are doing in the same region, or recent platform changes affecting geo-targeting accuracy.
 
-**Clarifying questions.** Use `ask_user_input_v0` for multiple-choice — which event platform's registration count is the source of truth, which channels to compare, what counts as the "region" for geo analysis (city, metro, state).
+**Clarifying questions.** Use a multiple-choice question tool if one is available (`ask_user_input_v0` on claude.ai, `AskUserQuestion` in Claude Code) — which event platform's registration count is the source of truth, which channels to compare, what counts as the "region" for geo analysis (city, metro, state).
 
 ## When to use the bundled workflows
 
@@ -110,11 +125,11 @@ Read `references/workflows.md` when the user's request matches.
 
 - `scripts/registration_cost_compare.py` — compares cost per registration across channels with sample-size flagging.
 - `scripts/geo_lift_analyzer.py` — compares target region performance against baseline ex-region.
-- `scripts/event_portfolio.py` — ranks events across a quarter by composite ROI score (cost per attendee, downstream conversions, pipeline if available).
+- `scripts/event_portfolio.py` — ranks events across a quarter by a composite of cost per attendee and MQL rate within each event type, and reports pipeline ROAS if pipeline data is provided.
 - `scripts/event_pipeline_tracker.py` — joins event attendees with CRM pipeline data over 30/60/90 day windows.
 - `scripts/account_engagement.py` — scores target account engagement using event attendance + ad signals + activity data.
 - `scripts/webinar_funnel.py` — full webinar funnel analysis with cohort breakdown by registration source.
-- `scripts/partner_event_roi.py` — partner event ROI analysis accounting for sponsorship costs, co-marketing reach, and pipeline.
+- `scripts/partner_event_roi.py` — partner event ROI from cost categories plus registration, MQL and pipeline totals, with user-only and blended views.
 
 ## Bundled templates
 
@@ -130,7 +145,7 @@ Read `references/workflows.md` when the user's request matches.
 
 **Registration tracking is often split.** Ad platforms report "form submissions," event platforms report "registrations." These rarely match. Ask the user which is the source of truth.
 
-**UTM tagging on event campaigns is unusually error-prone** — event campaigns get spun up quickly with copy-pasted tagging. Before treating data as gospel, verify that ad-platform registration counts match the event platform's by more than ~15%. If not, surface the tagging issue first.
+**UTM tagging on event campaigns is unusually error-prone** — event campaigns get spun up quickly with copy-pasted tagging. Before treating data as gospel, check that ad-platform registration counts are within ~15% of the event platform's. If they're further apart, surface the tagging issue first.
 
 **Geo data has lag.** Some platforms report regional breakdowns with 24–48 hour additional lag beyond standard reporting. Surface the latency if the user is asking about yesterday's regional numbers.
 

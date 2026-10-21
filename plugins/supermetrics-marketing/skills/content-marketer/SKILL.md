@@ -13,9 +13,22 @@ These workflows rely on the **Supermetrics connector for Claude**, primarily for
 
 Before running anything, check that the connector is active — look for Supermetrics tools (`data_query`, `accounts_discovery`, etc.). If they aren't present, prompt the user:
 
-> This workflow needs the Supermetrics connector for Claude. Install it at https://claude.ai/directory/connectors/cc599e7b-8c59-4e89-9bf0-36d47bb9ec80
+> This workflow needs the Supermetrics connector for Claude. It ships with this plugin — run `/mcp`, select **supermetrics** and sign in (a free trial account works). Then run `/supermetrics-marketing:setup` to connect your platforms.
 >
 > For landing page diagnosis, connect Google Analytics 4. For paid promotion analysis, connect at least one ad platform (LinkedIn Ads, Facebook Ads).
+
+## Before you analyze
+
+- **Load the business profile.** Call `manage_business_context` (`get`) for saved targets, budgets and known context, and judge results against those rather than generic benchmarks (see the `business-profile` skill).
+- **Check tracking first.** If platform conversions and GA4 or backend numbers disagree by more than 20%, or spend continues with zero conversions, say so before any optimization advice. See `/supermetrics-marketing:tracking-check`.
+- **Evidence discipline:**
+  - Treat changes based on fewer than about 10 conversions as noise.
+  - Ignore items with under 1,000 impressions.
+  - Don't report new campaigns that are still in a learning phase as failures.
+  - Check whether campaigns share a budget before advising budget moves.
+  - If the user disputes a number, re-pull the data before conceding.
+- **Answer shape:** conclusion first, then business impact, then next actions. Close with a one-line-per-pull "How I got this".
+- **Acting on findings.** These workflows recommend; they don't change campaigns. If the user wants to shift promotion budget or pause an ad, hand off to the `campaign-management` skill, which asks for explicit approval of each change.
 
 ## Core principles
 
@@ -82,17 +95,17 @@ For one-off questions ("which referral sources have the lowest bounce rate on ou
 ## Other Claude capabilities to leverage
 
 **Built-in document skills.** When the deliverable is a file:
-- Word documents (the web team fix doc is the prime case) → use the `docx` skill at `/mnt/skills/public/docx/SKILL.md`
-- Spreadsheets (page-by-page audit lists the web team can check off) → use the `xlsx` skill at `/mnt/skills/public/xlsx/SKILL.md`
-- Slide decks (content marketing reviews) → use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md`
+- Word documents (the web team fix doc is the prime case) → the `docx` skill
+- Spreadsheets (page-by-page audit lists the web team can check off) → the `xlsx` skill
+- Slide decks (content marketing reviews) → the `pptx` skill
 
-Read the relevant SKILL.md before building.
+If one of these skills is available, read its SKILL.md before building.
 
-**Other connectors when they're available.** If the user has Google Drive connected, the fix doc can land directly in Drive. If Slack is connected, a short version of the priority list can be posted to the relevant channel. If a CRM connector (HubSpot) is active, pages can be cross-referenced with downstream MQL data to identify which low-CVR pages are actually low-quality-lead generators.
+**Other connectors when they're available.** If the user has Google Drive connected, the fix doc can land directly in Drive. If Slack is connected, a short version of the priority list can be posted to the relevant channel. If a CRM such as HubSpot is connected in Supermetrics, pages can be cross-referenced with downstream MQL data to identify which low-CVR pages are actually low-quality-lead generators.
 
 **Web search.** Useful for current bounce-rate and conversion-rate benchmarks by content type, recent SEO/UX research, or industry-specific norms.
 
-**Clarifying questions.** Use `ask_user_input_v0` for multiple-choice clarifications — which conversion event matters, which page types to include or exclude, what bounce-rate threshold to flag.
+**Clarifying questions.** Use a multiple-choice question tool if one is available (`ask_user_input_v0` on claude.ai, `AskUserQuestion` in Claude Code) for clarifications — which conversion event matters, which page types to include or exclude, what bounce-rate threshold to flag.
 
 ## When to use the bundled workflows
 
@@ -112,11 +125,11 @@ Read `references/workflows.md` when the user's request matches.
 
 - `scripts/landing_page_diagnoser.py` — filters GA4 page-level data to find pages exceeding configurable bounce-rate and traffic thresholds while underperforming on conversion rate.
 - `scripts/content_promotion_ranker.py` — ranks promoted content assets by composite engagement score (CPC, CTR, lead rate).
-- `scripts/seo_audit.py` — analyzes Search Console + GA4 data to surface growing vs decaying organic pages, identifies topics worth expanding.
-- `scripts/content_attribution.py` — joins content engagement (sessions, time-on-page) with conversion data to surface content-to-conversion influence.
-- `scripts/newsletter_performance.py` — analyzes email campaign performance by content type, subject line patterns, and segment.
-- `scripts/video_content_ranker.py` — ranks video assets across platforms by composite engagement (views, watch time, conversion).
-- `scripts/content_gap_analyzer.py` — compares user's ranking keywords with competitor or industry benchmarks to find content gaps.
+- `scripts/seo_audit.py` — classifies pages from monthly Search Console (+ optional GA4) data as growing, stable, decaying, stuck on page 2-3, or underperforming.
+- `scripts/content_attribution.py` — scores content by first/middle/last-touch conversion counts plus engagement to surface content-to-conversion influence.
+- `scripts/newsletter_performance.py` — summarizes email campaign performance by content type, tags subject line features, and flags high-unsubscribe sends.
+- `scripts/video_content_ranker.py` — ranks videos within each platform by a percentile composite of views, completion rate and engagement rate.
+- `scripts/content_gap_analyzer.py` — compares the user's keyword positions with competitor positions to find content gaps.
 
 ## Bundled templates
 
@@ -130,7 +143,7 @@ Read `references/workflows.md` when the user's request matches.
 
 ## Things to watch for
 
-**"High bounce rate" isn't always bad.** A blog post with 75% bounce rate where readers spent 4 minutes on the page is performing exactly as intended — they read it, got what they came for, left. Bounce paired with low time-on-page is the actual signal. Surface both metrics together.
+**GA4 bounce rate is not Universal Analytics bounce rate.** In GA4, bounce rate is the share of sessions that weren't engaged (shorter than 10 seconds by default, no key event, one page view), the inverse of engagement rate. A reader who spends 4 minutes on one blog post is an engaged session, not a bounce. So a high GA4 bounce rate means visitors left almost immediately, a real signal, but judge it by page type and traffic source: paid social traffic bounces more than search. Surface bounce rate together with average engagement time.
 
 **Sample size matters for content.** A page with 50 visits in 30 days and a 0% conversion rate doesn't tell you much. The landing page diagnoser has a minimum-traffic filter (default 500 sessions); don't lower it without reason.
 

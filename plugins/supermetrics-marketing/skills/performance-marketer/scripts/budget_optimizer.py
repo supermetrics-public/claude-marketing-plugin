@@ -190,8 +190,10 @@ def main():
         is_locked = ch in locked
         proposed_spend = locked[ch] if is_locked else capped.get(ch, d["spend"])
         shift_pct = (proposed_spend - d["spend"]) / d["spend"] * 100 if d["spend"] > 0 else 0
-        # Project revenue assuming dampened ROAS holds for the proposed spend
-        projected_rev = proposed_spend * d["roas"] * d["dampening"]
+        # Current revenue holds; added spend earns dampened ROAS, removed spend loses average ROAS
+        delta = proposed_spend - d["spend"]
+        marginal_roas = d["roas"] * (d["dampening"] if delta > 0 else 1.0)
+        projected_rev = d["revenue"] + delta * marginal_roas
 
         out_rows.append({
             "channel": ch,

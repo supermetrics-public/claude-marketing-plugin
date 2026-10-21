@@ -40,7 +40,7 @@ def parse_args():
     p.add_argument("--region-col", default="region", help="Region column (default: region)")
     p.add_argument("--target-region", required=True, help="Target region for the event")
     p.add_argument("--min-impressions", type=int, default=1000, help="Min impressions in target for meaningful comparison (default: 1000)")
-    p.add_argument("--lift-threshold", type=float, default=20.0, help="Min lift % to consider meaningful (default: 20)")
+    p.add_argument("--lift-threshold", type=float, default=20.0, help="Min lift %% to consider meaningful (default: 20)")
     p.add_argument("--output", default="-", help="Output path (default: stdout)")
     return p.parse_args()
 

@@ -9,12 +9,12 @@ Seven workflow patterns for content marketing analysis: from diagnosing landing 
 **Platforms typically involved:** Google Analytics 4 (mandatory).
 
 ### Step 1 — Pull page-level data
-> Pull the top 20 landing pages by traffic volume from Google Analytics 4 over the last 30 days, including bounce rate, average time on page, and conversion rate.
+> Pull the top 20 landing pages by traffic volume from Google Analytics 4 over the last 30 days, including bounce rate, average engagement time, and key events (or session key event rate).
 
 Default to top 20 — that's the right unit for "where is the leak?" because it weights toward pages where fixes will have visible impact. Expand if the user wants a deeper audit.
 
 ### Step 2 — Identify underperformers
-Use `scripts/landing_page_diagnoser.py`. Default thresholds are 70% bounce rate and 1% conversion rate, with a 500-session minimum. Ask the user about their baselines via `ask_user_input_v0` — these vary by industry (a B2B SaaS landing page should convert higher than a blog post).
+Use `scripts/landing_page_diagnoser.py` (columns: `page_path`, `sessions`, `bounce_rate` and `conversion_rate` as percentages, `avg_time_on_page` in seconds; it accepts `conversions` instead of a rate). Default thresholds are 70% bounce rate and 1% conversion rate, with a 500-session minimum. Ask the user about their baselines — these vary by industry (a B2B SaaS landing page should convert higher than a blog post).
 
 ### Step 3 — Visualize the diagnosis
 The question the chart needs to answer: **which pages should the web team fix first, and why?**
@@ -45,7 +45,7 @@ Use `assets/web_team_doc.md` for structure. The doc needs to be a checklist the 
 Default delivery: build it as a Word doc with the `docx` skill — the web team will print or share it. If the user prefers Drive, save it there if Google Drive is connected. If they want a spreadsheet to track checkboxes, use the `xlsx` skill instead.
 
 ### Common variations
-- **CMS or HubSpot tracks conversions, not GA4** — same workflow shape; pull conversions from HubSpot if that connector is active, then join to the GA4 page list by URL.
+- **CMS or HubSpot tracks conversions, not GA4** — same workflow shape; pull form views and submissions from HubSpot Marketing Forms (`HSMF`) or page data from HubSpot Content Analytics (`HSCA`) if connected, then join to the GA4 page list by URL.
 - **Just blog posts, not landing pages** — filter URLs containing `/blog/` (or the user's blog path) in step 1.
 - **Mobile only** — re-pull GA4 data with device category as a filter.
 
@@ -63,7 +63,7 @@ Default delivery: build it as a Word doc with the `docx` skill — the web team 
 Ask the user about the naming convention if it's unclear. Data should be at the ad / asset level, not just campaign level.
 
 ### Step 2 — Rank the assets
-Use `scripts/content_promotion_ranker.py`. The script ranks by composite engagement (CPC + CTR + lead rate where available) and outputs a sorted list.
+Use `scripts/content_promotion_ranker.py` (columns: `asset_name`, `platform`, `spend`, `clicks`, `impressions`, optional `leads`; `--min-spend` defaults to 100). The script ranks by composite engagement (CPC + CTR + lead rate where available) and outputs a sorted list.
 
 A note on metrics: CPC and CTR are engagement metrics, not conversion metrics. They tell you the audience is interested. Whether the asset converts that interest into a lead is a separate question. For ranking which assets to put paid behind, engagement is the right framing.
 
@@ -77,7 +77,7 @@ If the user wants the multi-dimensional view, a grouped bar chart with one clust
 ### Step 4 — Qualitative read on the winners
 > Identify the top two best-performing assets and explain why their messaging is likely resonating with the target audience.
 
-This is the most useful part of the output for next-quarter content planning. Look at the winning assets and identify the actual angle — pain point, social proof, transformation, status, ROI. Use `assets/content_promotion_brief.md` to structure the deliverable.
+This is the most useful part of the output for next-quarter content planning. Look at the winning assets and identify the actual angle — pain point, social proof, transformation, status, ROI. Use `assets/content_promotion_brief.md` to structure the deliverable. When the user picks which assets to fund, the `campaign-management` skill can apply the budget changes with their approval.
 
 ### Step 5 — Output
 Default: markdown inline. If the user wants a doc to share with leadership for next-quarter planning, use the `docx` skill.
@@ -92,25 +92,25 @@ Default: markdown inline. If the user wants a doc to share with leadership for n
 
 **When to use:** the user wants to understand which content is winning vs decaying in organic search. Identifies posts to expand, posts to update, and posts to sunset.
 
-**Platforms typically involved:** Google Search Console (mandatory) + Google Analytics (for engagement on top of impressions/clicks). Optional: Ahrefs or Semrush for keyword positions and backlink data, Bing Webmaster Tools for additional search engine coverage.
+**Platforms typically involved:** Google Search Console (`GW`, mandatory) + Google Analytics 4 (`GAWA`, for engagement on top of impressions/clicks). Optional: Ahrefs (`AHRF2`) or Semrush (`SR`) for keyword positions and backlink data, Bing Webmaster Tools (`BW`) for Bing coverage.
 
 ### Step 1 — Pull search performance over time
-> Pull the last 6-12 months of Search Console performance by page and query: impressions, clicks, average position, CTR. Aggregate to monthly granularity to surface trends.
+> Pull the last 6-12 months of Search Console performance by page (and query if needed): impressions, clicks, average position, CTR, split by month. Search Console keeps 16 months of data.
 
 For posts published in the last 6 months, the trend captures the launch curve (newer posts haven't matured yet). For older posts, the trend captures growth vs decay.
 
 ### Step 2 — Pull on-page engagement
-> Pull Google Analytics data for the same pages: sessions, average engagement time, bounce rate (or engaged sessions rate in GA4), conversions.
+> Pull GA4 data for the same pages (landing page): sessions, engaged sessions, average engagement time, key events.
 
-If GA4 has goal/conversion tracking on the relevant actions (form fills, newsletter signups, demo bookings), pull those per page.
+If GA4 has key events on the relevant actions (form fills, newsletter signups, demo bookings), pull those per page. Search Console reports full URLs while GA4's `landingPage` is a path; normalize before joining.
 
 ### Step 3 — Classify each page
-Use `scripts/seo_audit.py`. The script classifies each page into:
+Use `scripts/seo_audit.py` (columns: `page`, `month` as YYYY-MM, `impressions`, `clicks`, `average_position`, optional `sessions`, `engaged_sessions`, `conversions`). The script classifies each page into:
 - **Growing**: impressions and clicks trending up
 - **Stable**: predictable monthly volume
 - **Decaying**: impressions or clicks trending down significantly (often signals stale content)
-- **Stuck on page 2-3**: significant impressions but low CTR (Position 11-30 — fixable with on-page work)
-- **Underperforming**: low engagement metrics despite traffic (content-quality issue)
+- **Stuck on page 2-3**: average position 11-30 (fixable with on-page work)
+- **Underperforming**: engagement rate under 30% despite traffic (content-quality issue; needs the GA4 columns)
 
 ### Step 4 — Visualize the portfolio
 The question the chart needs to answer: **which pages are growing, which are at risk, and where should I focus content effort?**
@@ -120,7 +120,7 @@ A scatter plot works well: x-axis = monthly impressions trend (% change), y-axis
 A secondary view: top 20 decaying pages ranked by absolute click loss vs peak month. These are the urgent updates.
 
 ### Step 5 — Build the audit report
-Use `assets/seo_audit_report.md`. The recommendations should split into:
+Use `assets/seo_audit_report.md` (offer a live Studio dashboard via the `studio-dashboards` skill if the user wants to track this monthly). The recommendations should split into:
 - **Update now** (decaying pages with high historical traffic)
 - **Refresh** (stable pages that could grow with a content refresh)
 - **Sunset** (low-traffic, low-quality pages dragging average performance)
@@ -128,7 +128,7 @@ Use `assets/seo_audit_report.md`. The recommendations should split into:
 
 ### Common variations
 - **Add backlink context** — if Ahrefs is connected, pages with strong backlinks deserve preservation effort; pages with no backlinks may be sunset candidates.
-- **Compare to competitors** — if Semrush is connected, surface which competitor pages outrank the user's on key queries; gives a roadmap for what the user's pages need to address.
+- **Compare to competitors** — if Semrush or Ahrefs is connected, surface which competitor pages outrank the user's on key queries; gives a roadmap for what the user's pages need to address.
 - **Branded vs non-branded** — separate branded query performance from non-branded. Branded performance is a vanity metric for content; non-branded is the real test.
 
 ---
@@ -137,20 +137,21 @@ Use `assets/seo_audit_report.md`. The recommendations should split into:
 
 **When to use:** the user wants to credit specific content pieces with influencing conversions — not just direct-conversion attribution, but the broader "what content moved this person closer to converting" question.
 
-**Platforms typically involved:** Google Analytics (for content engagement + conversion paths) + CRM (HubSpot, Salesforce) for the conversion side when available.
+**Platforms typically involved:** Google Analytics 4 (content engagement) + CRM (HubSpot, Salesforce) for the conversion side when available.
 
 ### Step 1 — Pull content engagement
-> Pull GA4 data for content URLs: sessions, engaged sessions, average engagement time, scroll depth, and any conversion events.
+> Pull GA4 data for content URLs: sessions, engaged sessions, average engagement time, scrolled users (90% scroll, if enhanced measurement is on), and key events.
 
 For pages that aren't conversion targets (blog posts, resource pages, podcast pages), engagement signals matter more than conversions.
 
-### Step 2 — Pull conversion paths (if GA4 supports it)
-GA4's path exploration report shows the sequence of pages visited before a conversion. Pull which content pages appear in conversion paths and how frequently.
-
-If the CRM is connected, pull contacts/leads with first-touch and last-touch page attribution.
+### Step 2 — Pull touch data
+GA4 path explorations and conversion paths are UI-only; the GA4 API doesn't return page-level paths. Use what the API does give:
+- **First touch:** GA4 `landingPage` with key events, or HubSpot contact `first_page_seen` / `first_conversion` (`HSCON`).
+- **Last touch:** HubSpot contact `recent_conversion` (the last form and page before converting).
+- **Middle touch:** only from the CRM's page-view history or an export the user provides. If unavailable, say so and score on first and last touch only.
 
 ### Step 3 — Compute the content attribution table
-Use `scripts/content_attribution.py`. Outputs per content piece:
+Use `scripts/content_attribution.py` (columns: `content_url`, `sessions`, `engaged_sessions`, optional `avg_engagement_time_seconds`, `first_touch_conversions`, `middle_touch_conversions`, `last_touch_conversions`). Outputs per content piece:
 - Total sessions
 - Engaged sessions (sessions meeting the engagement threshold)
 - Conversions where this content was the first touch
@@ -176,7 +177,7 @@ Use `assets/content_attribution_summary.md`. The audience is typically the conte
 
 **When to use:** the user runs a content-driven newsletter or email program and wants to understand which content types, topics, and formats drive the most engagement and downstream conversion.
 
-**Platforms typically involved:** an email marketing platform (Mailchimp, Klaviyo, Brevo, HubSpot Marketing Email, Campaign Monitor, Omnisend, ActiveCampaign). CRM for downstream conversion if available.
+**Platforms typically involved:** an email marketing platform (Mailchimp, Klaviyo, Brevo, HubSpot Marketing Email, Campaign Monitor, Omnisend, ActiveCampaign). CRM for downstream conversion if available. Treat open rates with care: Apple Mail Privacy Protection inflates opens, so lean on clicks and click-to-open.
 
 ### Step 1 — Pull campaign performance
 > Pull the last 30-60 email campaigns from [email platform]: subject line, send date, list segment, opens, open rate, clicks, click-through rate, unsubscribes.
@@ -189,10 +190,10 @@ If the user can tag campaigns by content type (newsletter, promotional, educatio
 Net list growth (new subscribers − unsubscribes) is often more informative than open rates for content programs.
 
 ### Step 3 — Analyze patterns
-Use `scripts/newsletter_performance.py`. The script:
+Use `scripts/newsletter_performance.py` (columns: `campaign_name`, `send_date`, `subject_line`, `recipients`, `opens`, `clicks`, `unsubscribes`, optional `segment`, `content_type`, `conversions`, `revenue`). The script:
 - Computes engagement metrics per campaign type
-- Identifies subject line patterns (length, sentiment, questions vs statements) and their correlation with open rate
-- Identifies the segments that engage most
+- Tags subject line features (length class, question, number, emoji) so you can compare open rates by pattern
+- Carries the segment through so you can compare segments
 - Flags campaigns with anomalously high unsubscribe rates (signal of poor content fit)
 
 ### Step 4 — Visualize the patterns
@@ -203,7 +204,7 @@ A bar chart of open rate by content type works as a starting point. A second vie
 For unsubscribe analysis: a horizontal bar chart of campaigns ranked by unsubscribe rate — campaigns at the top are losing list members fastest and deserve attention.
 
 ### Step 5 — Build the review doc
-Use `assets/newsletter_review.md`. The audience is the user themselves or their content team.
+Use `assets/newsletter_review.md`. The audience is the user themselves or their content team. For a monthly review, offer a live Studio dashboard (`studio-dashboards` skill).
 
 ### Common variations
 - **Subject line A/B testing analysis** — if the user runs A/B tests, surface which variants won and what patterns emerge.
@@ -216,24 +217,24 @@ Use `assets/newsletter_review.md`. The audience is the user themselves or their 
 
 **When to use:** the user produces video content and wants to understand cross-platform performance — what's working on YouTube vs TikTok vs Instagram Reels vs LinkedIn — and where to invest more production effort.
 
-**Platforms typically involved:** YouTube + organic social platforms (TikTok Organic, Instagram Insights, LinkedIn Pages, Pinterest Organic, X Organic, Threads Insights). For paid video: ad platforms.
+**Platforms typically involved:** YouTube (`YT2`) + organic social platforms (TikTok Organic `TIKBA`, Instagram Insights `IGI` via the `instagram_insights` tool, LinkedIn Pages, Pinterest Organic, X Organic, Threads Insights). For paid video: ad platforms.
 
 ### Step 1 — Pull cross-platform video data
 > Pull video performance from [connected platforms] for the last 60-90 days: views, watch time, completion rate, engagement (likes/comments/shares), and follower/subscriber growth.
 
-Each platform reports metrics differently — YouTube has "average view duration", TikTok has "average watch time", Instagram has "reach". Normalize as best as possible; document where direct comparison isn't possible.
+Each platform reports metrics differently — YouTube has average view duration and average view percentage, TikTok has average view time and completion rate, Instagram reports views and reach. Normalize as best as possible; document where direct comparison isn't possible.
 
 ### Step 2 — Pull downstream data if available
 For videos with click-through (CTAs to landing pages), pull session data from GA4. For videos that drive subscribers, pull email-list-growth data if relevant.
 
 ### Step 3 — Rank by composite engagement
-Use `scripts/video_content_ranker.py`. Composite engagement combines:
+Use `scripts/video_content_ranker.py` (columns: `title`, `platform`, `publish_date`, `views`, `completion_rate`, `engagement_rate`, optional `clicks`, `conversions`). Composite engagement combines:
 - Views (volume signal)
 - Completion or retention rate (quality signal — % of viewers who finish)
 - Engagement rate (likes + comments + shares / views)
-- Conversion or click-through if available
+- Clicks and conversions are carried through in the output but not scored
 
-The script normalizes within each platform first (so a TikTok with 50k views isn't compared directly to a LinkedIn video with 500), then ranks the user's videos within each platform plus a cross-platform composite ranking.
+The script scores each video by percentile within its own platform (so a TikTok with 50k views isn't compared directly to a LinkedIn video with 500) and ranks videos within each platform. Compare across platforms by these within-platform scores.
 
 ### Step 4 — Visualize the portfolio
 The question the chart needs to answer: **which content themes and formats are working, and where?**
@@ -258,24 +259,23 @@ Use `assets/video_content_report.md`. The output should surface:
 
 **When to use:** the user is planning the next quarter or year of content and wants to identify topic gaps — queries the audience is searching for that the user's content doesn't address, or where competitors outrank.
 
-**Platforms typically involved:** Google Search Console (user's own ranking keywords) + Ahrefs or Semrush (for competitor keywords). Google Trends and Google Ads Keyword Planner for query volume and trend.
+**Platforms typically involved:** Google Search Console (`GW`, user's own queries) + Ahrefs (`AHRF2`) or Semrush (`SR`) for competitor keywords. Google Trends (`GT`) and Google Ads Keyword Planner (`GAKEY`) for query volume and trend.
 
 ### Step 1 — Pull the user's ranking keywords
 > Pull all keywords the user's site ranks for from [Search Console / Ahrefs / Semrush]: keyword, current position, monthly search volume, current URL.
 
 ### Step 2 — Pull competitor or industry benchmark keywords
-Ask the user (via `ask_user_input_v0` if needed): which 3-5 competitors should be in scope?
+Ask the user: which 3-5 competitors should be in scope?
 
 > Pull ranking keywords for [competitor 1, competitor 2, ...] from [Ahrefs / Semrush]. For each competitor: keyword, position, URL.
 
 ### Step 3 — Compute the gap
-Use `scripts/content_gap_analyzer.py`. The script:
-- Identifies keywords that competitors rank for but the user doesn't
-- Identifies keywords with high search volume where competitors rank in top 10 and the user ranks below position 30 or not at all
-- Identifies queries trending up over the period (if Google Trends data is provided) where the user has no content
-- Filters for relevance using basic heuristics (excludes branded competitor terms, exact-match brand queries)
+Use `scripts/content_gap_analyzer.py` (columns: `keyword`, `monthly_volume`, `user_position`, `competitor_position` or one `competitor_<name>_position` column per competitor, optional `search_intent`). The script keeps keywords where:
+- a competitor ranks in the top 10 (`--competitor-top`)
+- the user ranks below position 30 (`--user-threshold`) or not at all
+- monthly volume is at least 100 (`--min-volume`)
 
-Outputs ranked keyword gaps with: query, monthly volume, competitor positions, user's current position (or "not ranking"), suggested content type (per the query's intent classification — informational, navigational, transactional, commercial).
+Outputs ranked keyword gaps with: keyword, monthly volume, best competitor position, user status (position or "not ranking"), and a suggested content type from the `search_intent` column. Remove competitor brand terms yourself; the script doesn't filter them, and it doesn't use Google Trends data.
 
 ### Step 4 — Visualize the opportunity
 The question the chart needs to answer: **what's the volume of search demand we're not capturing, and how concentrated is the opportunity?**

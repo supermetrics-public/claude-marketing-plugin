@@ -34,12 +34,12 @@ Use `scripts/exec_summary_builder.py` to produce a structured outline of the dec
 Build from `assets/exec_deck_outline.md`. Recommendations should be specific: name a channel, name a dollar amount or percent shift, name the expected impact.
 
 ### Step 5 — Build the deck
-Use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md` to produce the actual `.pptx` file. Read the SKILL.md first — slides have layout rules and visual conventions that don't apply to documents.
+Use the `pptx` skill, if available, to produce the actual `.pptx` file. Read the SKILL.md first — slides have layout rules and visual conventions that don't apply to documents.
 
 Embed the visualizations from steps 2 and 3 inside the deck. Don't put long text on slides — bullets and callouts only. The deck is a talking aid.
 
 ### Step 6 — Companion deliverables (only if asked)
-If the user wants a handout to accompany the deck, use the `docx` skill to produce a Google Doc–style summary. If they want a CMO email, build from `assets/cmo_email.md` and deliver inline as markdown (so they can edit before sending). If Gmail is connected, offer to save as a draft.
+For a quarterly review the team will reopen, offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user wants a handout to accompany the deck, use the `docx` skill to produce a Google Doc–style summary. If they want a CMO email, build from `assets/cmo_email.md` and deliver inline as markdown (so they can edit before sending). If Gmail is connected, offer to save as a draft.
 
 ### Common variations
 - **Just the executive summary, skip channel deep-dives** — collapse to one summary visualization + one cross-channel comparison + recommendations.
@@ -52,15 +52,15 @@ If the user wants a handout to accompany the deck, use the `docx` skill to produ
 
 **When to use:** the user wants to know if monthly (or quarterly) ad spend is on track and what month-end totals will be. Often mid-month when there's still time to course-correct.
 
-**Platforms typically involved:** whichever platforms have meaningful spend. For B2B usually Google Ads, LinkedIn Ads, Facebook Ads. For ecommerce, add Pinterest, TikTok, Meta.
+**Platforms typically involved:** whichever platforms have meaningful spend. For B2B usually Google Ads, LinkedIn Ads, Facebook Ads. For ecommerce, add Pinterest and TikTok.
 
 ### Step 1 — Pull month-to-date data
 > Pull the daily ad spend and total conversions for the current period across [the connected ad platforms].
 
-Daily granularity is required — the pacing script needs daily data to compute a run rate that accounts for spend ramp.
+Daily granularity is required — the pacing script computes the run rate as the month-to-date daily average. If spend ramped mid-month, say so and project from the recent daily rate instead.
 
 ### Step 2 — Forecast period-end
-Use `scripts/budget_pacing.py`. Pass in the period target budget per channel; ask the user via `ask_user_input_v0` if they haven't shared it. The script outputs period-end projections and the variance vs. target.
+Use `scripts/budget_pacing.py`. Pass in the period target budget per channel; ask the user if they haven't shared it. The script outputs period-end projections and the variance vs. target.
 
 ### Step 3 — Visualize pacing
 The question the chart needs to answer: **are we on track, and where's the risk?**
@@ -73,7 +73,7 @@ Alternative when the user has many channels (8+): a horizontal bar chart of vari
 The script flags channels off-pace by more than ±15% (configurable). Surface the flagged channels with their projected period-end and a one-line recommendation per channel — slow down bidding, increase daily caps, redistribute budget.
 
 ### Step 5 — Output
-Default delivery is the chart in chat plus a markdown summary. If the user wants a spreadsheet for the planning team, use the `xlsx` skill.
+Default delivery is the chart in chat plus a markdown summary. Pacing is checked repeatedly, so offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user wants a spreadsheet for the planning team, use the `xlsx` skill.
 
 ### Common variations
 - **"What if we hold spend flat for the rest of the period?"** — re-run the projection with the daily run rate frozen. The script supports a `--freeze-from` date.
@@ -91,7 +91,7 @@ Default delivery is the chart in chat plus a markdown summary. If the user wants
 ### Step 1 — Pull the data
 > Pull the total spend, revenue, and ROAS for the last 60 days across [the connected ad platforms].
 
-Surface the attribution model for each platform. If the user doesn't know, name the issue explicitly in the deliverable — comparing last-click ROAS on Facebook to data-driven ROAS in Google is apples to oranges and a finance partner will spot it.
+Surface the attribution model for each platform. If the user doesn't know, name the issue explicitly in the deliverable — comparing Facebook's 7-day-click / 1-day-view ROAS to data-driven ROAS in Google is apples to oranges and a finance partner will spot it.
 
 ### Step 2 — Rank and compare
 Use `scripts/roas_ranker.py`. The script ranks channels, computes the best-to-worst spread, and outputs a budget-reallocation recommendation with the diminishing-returns caveat baked in.
@@ -107,7 +107,7 @@ If the user wants more dimension, a scatter of spend (x-axis) vs ROAS (y-axis), 
 Build from `assets/budget_reallocation_memo.md`. The memo must contain the size of the proposed shift in dollars (not just percent), and the caveat about diminishing returns on the receiving channel. Finance teams flag this almost reflexively; include it preemptively.
 
 ### Step 5 — Output
-Default is the chart plus the memo inline as markdown. If the user wants a Word doc to send to finance, use the `docx` skill.
+Default is the chart plus the memo inline as markdown. If the ranking will be revisited, offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user wants a Word doc to send to finance, use the `docx` skill.
 
 ### Common variations
 - **CPA instead of ROAS** — pass `--metric cpa` to the ranker. The chart logic flips (lower bars are better).
@@ -182,7 +182,7 @@ Use `scripts/channel_investment_case.py` to identify channels showing saturation
 These are the channels where incremental dollars are getting expensive. If they're showing saturation, a new channel is more likely to outperform incremental spend on the current ones.
 
 ### Step 2 — Estimate audience overlap
-If the user has GA4 connected, pull source-overlap data to see how much audience overlap exists between current channels. Low overlap suggests each channel reaches a distinct audience; the new channel might add genuinely incremental reach.
+GA4 doesn't expose cross-channel audience overlap through its reporting API. As a proxy, pull GA4 `newUsers` vs total users by `firstUserDefaultChannelGrouping`: channels still bringing a high share of new users are reaching fresh audiences; a falling share suggests current channels are recycling the same people.
 
 ### Step 3 — Research the new channel
 Use web search to find recent benchmarks for the proposed new channel: typical CPM, CPC, conversion rate, audience profile. Note the date and source of every benchmark — these change quickly.
@@ -218,7 +218,7 @@ Use `assets/new_channel_business_case.md`. The case includes:
 **Platforms typically involved:** ad platforms + CRM (HubSpot, Salesforce) + ecommerce or payments connector for revenue context.
 
 ### Step 1 — Confirm the targets
-Ask the user (via `ask_user_input_v0` if needed): what are the committed targets, and for what time period? Common ones:
+Ask the user (with a multiple-choice question tool if available): what are the committed targets, and for what time period? Common ones:
 - **CAC** — cost per acquired customer
 - **MER** (Marketing Efficiency Ratio) — total revenue / total marketing spend
 - **Payback period** — months until LTV exceeds CAC
@@ -265,7 +265,7 @@ Default delivery: chart + diagnosis inline as markdown. If the user is sharing t
 **Platforms typically involved:** ad platforms (for CAC numerator) + CRM (HubSpot, Salesforce, Pipedrive) and/or ecommerce/payments (Shopify, Stripe, Recharge) for LTV. This workflow is significantly more valuable when both sides are connected.
 
 ### Step 1 — Confirm what counts as a customer
-Ask the user (via `ask_user_input_v0`): which event defines "acquired customer"?
+Ask the user (with a multiple-choice question tool if available): which event defines "acquired customer"?
 - First purchase (ecommerce default)
 - Closed-won opportunity (B2B default)
 - Subscription start (SaaS default)
@@ -288,7 +288,7 @@ For B2B: cohort customers by closed-won month, sum closed-won revenue + expansio
 ### Step 4 — Compute unit economics
 Use `scripts/unit_economics.py`. Outputs:
 - Blended CAC (total marketing spend / total new customers in the period)
-- Per-channel CAC if attribution data is available
+- Per-channel CAC: run the script once per channel's cohort data
 - LTV (cumulative revenue per acquired customer)
 - LTV:CAC ratio (3:1 is the SaaS rule of thumb; 4:1+ is healthier for venture-funded businesses)
 - Payback period (months until LTV exceeds CAC)

@@ -13,10 +13,10 @@ Seven workflow patterns field marketers run across the event lifecycle: from pre
 
 Ask the user about the naming convention if unclear. Look for spend, clicks, and registrations (sometimes called conversions depending on platform setup).
 
-If ad-platform registration numbers diverge significantly from the event platform (Zoom, Hopin, Eventbrite, On24), flag the discrepancy before proceeding — the comparison is misleading otherwise.
+If ad-platform registration numbers diverge significantly from the event platform (Zoom, Eventbrite, ON24 — not Supermetrics sources, so ask for the count or an export), flag the discrepancy before proceeding — the comparison is misleading otherwise.
 
 ### Step 2 — Compare cost per registration
-Use `scripts/registration_cost_compare.py`. The script warns when conclusions are based on fewer than 30 registrations per channel — the threshold below which CPR differences are likely noise.
+Use `scripts/registration_cost_compare.py` (columns: `channel`, `spend`, `clicks`, `registrations`). The script warns when conclusions are based on fewer than 30 registrations per channel — the threshold below which CPR differences are likely noise.
 
 ### Step 3 — Visualize the comparison
 The question the chart needs to answer: **which channel is generating registrations more efficiently, and how confident are we?**
@@ -33,7 +33,7 @@ The recommendation should be concrete: dollar amount, source channel, destinatio
 ### Step 5 — Update the regional team
 Use `assets/regional_team_update.md`. The message is short — Slack-length even if delivered as email.
 
-If a Slack connector is active, the update typically goes there directly to the regional team's channel. If not, default to inline markdown the user can copy.
+If a Slack connector is active, the update typically goes there directly to the regional team's channel. If not, default to inline markdown the user can copy. If the user wants to act on the budget shift, the `campaign-management` skill can apply it with their approval.
 
 ### Common variations
 - **"What if we extend the campaign?"** — model expected additional registrations at current CPR. The script accepts a `--projected-days` flag.
@@ -51,10 +51,10 @@ If a Slack connector is active, the update typically goes there directly to the 
 ### Step 1 — Pull the regional data
 > Pull the performance data from the last 14 days for the [Facebook Ads, LinkedIn Ads] campaigns geographically targeted to [region].
 
-Be specific about the region's definition — city, metro, state. Facebook and LinkedIn handle geo-targeting differently. If unclear, check the campaign-level geo settings via the connector.
+Be specific about the region's definition — city, metro, state. Pull the regional split with each platform's geo dimension (Facebook Ads `Region`, Google Ads location reports, LinkedIn Ads `memberRegion`). LinkedIn's member region is where engaged members are, not the targeting, and is hidden below privacy thresholds. To read a campaign's targeting settings, use `campaign_and_resource_get` (read-only).
 
 ### Step 2 — Compare to national baseline
-Use `scripts/geo_lift_analyzer.py`. The script normalizes regional metrics against a national baseline that excludes the target region (so the comparison isn't diluted by including the target in the baseline).
+Use `scripts/geo_lift_analyzer.py --target-region "<region>"` on a CSV with one row per region (`region`, `clicks`, `impressions`, `conversions`, `spend`) covering all regions, not just the target. The script normalizes regional metrics against a national baseline that excludes the target region (so the comparison isn't diluted by including the target in the baseline).
 
 ### Step 3 — Visualize the lift
 The question the chart needs to answer: **did the event drive measurable digital lift in the region, and how big is the effect?**
@@ -87,19 +87,19 @@ Default delivery: build as a Word doc with the `docx` skill if the user wants it
 ### Step 1 — Pull the event roster
 > Pull the list of events held in [period]: event name, type (in-person / webinar / virtual conference / dinner / workshop), location, date, total spend (promotion + venue + production).
 
-If the user maintains this in a spreadsheet or project tool, they may need to provide it directly rather than via Supermetrics.
+This roster usually lives in a spreadsheet or project tool, so ask the user for it (if it's in Google Sheets, Supermetrics can read it with the Google Sheets connector). Promotion spend per event can come from the ad platforms by campaign name.
 
 ### Step 2 — Pull registrations and attendance
-> For each event, pull registrations and attendance counts. From the CRM (if connected), pull MQLs created within 30 days of the event from attendees.
+> For each event, get registrations and attendance counts (from the event platform export or the CRM's campaign records). From the CRM (if connected), pull MQLs created within 30 days of the event from attendees.
 
 ### Step 3 — Compute composite ROI
-Use `scripts/event_portfolio.py`. The script computes per event:
+Use `scripts/event_portfolio.py` (columns: `event_name`, `event_type`, `date`, `total_cost`, `registrations`, `attendees`, optional `location`, `mqls_within_30d`, `pipeline_value`). The script computes per event:
 - Cost per registration
 - Cost per attendee (CPA)
 - Attendance rate
 - MQL conversion rate from attendees (if CRM data available)
 - Cost per MQL via the event
-- Composite ROI score (normalized within event type)
+- Composite score (cost per attendee and MQL rate, normalized within event type)
 
 ### Step 4 — Visualize the portfolio
 The question the chart needs to answer: **which event types and locations consistently produce the best outcomes?**
@@ -109,7 +109,7 @@ A scatter plot works: x-axis = cost per attendee, y-axis = MQL conversion rate (
 A secondary view: bar chart of average composite ROI by event type, sorted descending. Surfaces which formats deserve more investment.
 
 ### Step 5 — Build the portfolio review
-Use `assets/event_portfolio_review.md`. The doc should split into:
+Use `assets/event_portfolio_review.md` (offer a live Studio dashboard via the `studio-dashboards` skill for the promotion-spend side if this is reviewed every quarter). The doc should split into:
 - **Best performers** (continue running)
 - **Underperformers** (need improvement or sunset)
 - **Experiments worth repeating** (one-off events with promising signals)
@@ -129,21 +129,21 @@ Use `assets/event_portfolio_review.md`. The doc should split into:
 **Platforms typically involved:** event platform for attendee list + CRM (HubSpot, Salesforce, Pipedrive) for pipeline tracking.
 
 ### Step 1 — Get the attendee list
-> Pull the attendee list for [event] including email addresses, company names, and job titles.
+> Get the attendee list for [event] (the user's event-platform export) including email addresses, company names, and job titles.
 
 ### Step 2 — Match attendees to CRM contacts
 > For each attendee, find their CRM contact record. Pull: any opportunities created within 30/60/90 days of the event date, opportunity stage, opportunity amount.
 
-Matching is usually by email but may need company-name fuzzy matching for attendees who used personal emails.
+Matching is usually by email but may need company-name fuzzy matching for attendees who used personal emails. Supermetrics returns CRM report data (e.g. HubSpot `HSCON` contacts with email, Salesforce Opportunities and Campaigns reports), so pull the contact and opportunity tables and match them to the attendee list yourself. If the event is a Salesforce campaign, its responses, opportunities and won opportunities are available directly on the Campaigns report.
 
 ### Step 3 — Track pipeline progression
-Use `scripts/event_pipeline_tracker.py`. The script computes:
+Use `scripts/event_pipeline_tracker.py --event-date YYYY-MM-DD --event-cost N` (columns: `attendee_email`, `matched_in_crm`, `opp_created_date`, `opp_amount`, `opp_stage`, optional `attendee_company`). The script computes:
 - Total attendees
 - Attendees matched to CRM contacts
 - New opportunities created (in each 30/60/90 day window)
 - Total pipeline value per window
 - Closed-won deals (if any have closed)
-- Cost per pipeline dollar (event cost / pipeline value)
+- Pipeline ROAS (pipeline value / event cost)
 
 ### Step 4 — Visualize the conversion timing
 The question the chart needs to answer: **how does pipeline from this event accumulate over time?**
@@ -169,18 +169,18 @@ Use `assets/event_pipeline_report.md`. Audience: VP of Sales or CRO + the market
 **Platforms typically involved:** event platform for attendee data + CRM for target account list + LinkedIn Ads (if ABM ads were running) + GA4 for site behavior (if company-level identification is available).
 
 ### Step 1 — Define the target account list
-Ask the user (via `ask_user_input_v0` if needed): which accounts are the priority for this event? Usually a tier-1 ABM list of 50-200 accounts.
+Ask the user: which accounts are the priority for this event? Usually a tier-1 ABM list of 50-200 accounts.
 
 ### Step 2 — Compile engagement signals per account
 For each target account, gather signals from the period spanning the event (e.g. 2 weeks before through 2 weeks after):
 - Number of attendees from the account
 - Seniority of attendees (CEO/VP/Director/IC)
-- Pre-event ad impressions and clicks via LinkedIn account targeting
-- Post-event website visits
+- Pre-event LinkedIn ad impressions and clicks by `memberCompanyName` (where LinkedIn's privacy threshold allows)
+- Post-event website visits (needs a company-identification tool; GA4 doesn't identify companies)
 - Sales activities logged (meetings booked, emails exchanged)
 
 ### Step 3 — Score engagement per account
-Use `scripts/account_engagement.py`. The script computes per account:
+Use `scripts/account_engagement.py` (columns: `account_name`, `attendees_from_account`, `max_seniority`, `pre_event_ad_impressions`, `pre_event_ad_clicks`, `post_event_web_sessions`, `meetings_booked`, `in_pipeline`, optional `tier`, `opportunity_amount`). The script computes per account:
 - Engagement score (0-100, composite of all signals)
 - Tier classification (engaged / warming / aware / cold)
 - Whether the account is in active pipeline
@@ -207,13 +207,13 @@ Use `assets/account_engagement_brief.md`. Audience: B2B marketing + sales counte
 
 **When to use:** the user runs webinars regularly and wants a detailed performance review — not just registration cost but the full funnel through attendance, engagement, and downstream behavior.
 
-**Platforms typically involved:** webinar platform (Zoom, ON24, Webex, GoToWebinar — usually outside Supermetrics, so the user provides the attendance data) + form platform (HubSpot Marketing Forms or similar) + CRM for downstream tracking + ad platforms for promotion attribution.
+**Platforms typically involved:** webinar platform (Zoom, ON24, Webex, GoToWebinar — not Supermetrics sources, so the user provides the attendance data) + form platform (HubSpot Marketing Forms or similar) + CRM for downstream tracking + ad platforms for promotion attribution.
 
 ### Step 1 — Pull the full funnel
 > For [webinar], gather: total registrations by source, attendees (live and on-demand), average watch time, poll/Q&A participation rate, post-webinar email engagement, and MQLs created within 30 days of attendance.
 
 ### Step 2 — Cohort by registration source
-Use `scripts/webinar_funnel.py`. The script breaks out funnel performance by registration source (LinkedIn Ads, Google Ads, Email, Organic, Partner referral, etc.):
+Use `scripts/webinar_funnel.py` (columns: `source`, `spend`, `registrations`, `attended_live`, `attended_on_demand`, `high_engagement`, `mqls_within_30d`). The script breaks out funnel performance by registration source (LinkedIn Ads, Google Ads, Email, Organic, Partner referral, etc.):
 - Registration count
 - Attendance rate (live)
 - On-demand attendance rate (post-event watch)
@@ -227,7 +227,7 @@ The question the chart needs to answer: **which registration sources produce the
 A horizontal grouped bar chart per source, with bars for each funnel stage (register, attend live, attend total, engage, MQL), colored consistently. Surfaces patterns like "LinkedIn Ads registers fewer but attends at 2x the rate" or "Email registers most but engages least."
 
 ### Step 4 — Build the summary
-Use `assets/webinar_funnel_summary.md`. The most-useful content is the source-level cost-per-MQL comparison and the engagement-rate breakdown.
+Use `assets/webinar_funnel_summary.md`. For a recurring webinar program, offer to publish the promotion and registration side as a live Studio dashboard (`studio-dashboards` skill). The most-useful content is the source-level cost-per-MQL comparison and the engagement-rate breakdown.
 
 ### Common variations
 - **Live vs on-demand split** — many webinars deliver more value on-demand than live. Surface the on-demand performance separately; it's often the dominant funnel.
@@ -243,7 +243,7 @@ Use `assets/webinar_funnel_summary.md`. The most-useful content is the source-le
 **Platforms typically involved:** ad platforms + event platform / form platform + CRM for pipeline. Partner-shared metrics may need to come from the partner directly.
 
 ### Step 1 — Define the shared and unshared costs
-Ask the user (via `ask_user_input_v0` if needed):
+Ask the user:
 - Sponsorship fee or co-marketing commitment ($)
 - The user's own promotion spend on top of the sponsorship
 - Estimated value of the partner's promotion reach (use only if partner shared the number)
@@ -253,14 +253,14 @@ Ask the user (via `ask_user_input_v0` if needed):
 > Pull registrations and form fills tagged with the [partner event] campaign source. From the CRM, pull MQLs and opportunities created from these contacts.
 
 ### Step 3 — Compute partner-specific ROI
-Use `scripts/partner_event_roi.py`. The script computes:
-- Total cost (the user's investment, not shared cost)
-- Net-new contacts acquired (not previously in CRM)
-- Cost per net-new contact
-- Pipeline created within 60 days
+Use `scripts/partner_event_roi.py costs.csv` (rows of `cost_category` = sponsorship_fee / user_promotion / user_production / partner_inkind, and `amount`) with `--user-registrations`, `--user-mqls`, `--user-pipeline`. The script computes:
+- Total cost (the user's investment; partner in-kind is shown separately)
+- Cost per registration and cost per MQL
 - Pipeline ROAS
 
-If the user provided partner-side numbers (registrations from partner's audience, opportunities the partner is tracking), the script can compute "blended" and "user-only" views separately.
+Net-new contacts (not previously in CRM) and 60-day pipeline have to be counted from CRM data first; the script takes the totals.
+
+If the user provided partner-side numbers (`--partner-registrations`, `--partner-mqls`, `--partner-pipeline`), the script also prints a "blended" view next to the "user-only" one.
 
 ### Step 4 — Frame the partner-specific lens
 A pure "registrations" view undersells partner events because much of the value is being in front of the partner's audience for brand awareness — hard to measure but real. The visualization should show both:

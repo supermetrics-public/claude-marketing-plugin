@@ -13,11 +13,23 @@ These workflows rely on the **Supermetrics connector for Claude**, which pulls l
 
 If they aren't present, prompt the user:
 
-> This workflow needs the Supermetrics connector for Claude. Install it at https://claude.ai/directory/connectors/cc599e7b-8c59-4e89-9bf0-36d47bb9ec80
+> This workflow needs the Supermetrics connector for Claude. It ships with this plugin — run `/mcp`, select **supermetrics** and sign in (a free trial account works). Then run `/supermetrics-marketing:setup` to connect your platforms.
 >
-> Once it's installed, authenticate and connect the ad platforms you want covered in the analysis.
+> Once signed in, connect the ad platforms you want covered in the analysis.
 
 Don't fabricate placeholder data. Executive decisions get made on real numbers.
+
+## Before you analyze
+
+- **Load the business profile.** Call `manage_business_context` (`get`) for saved targets, budgets and known context, and judge results against those rather than generic benchmarks (see the `business-profile` skill).
+- **Check tracking first.** If platform conversions and GA4 or backend numbers disagree by more than 20%, or spend continues with zero conversions, say so before any optimization advice. See `/supermetrics-marketing:tracking-check`.
+- **Evidence discipline:**
+  - Treat changes based on fewer than about 10 conversions as noise.
+  - Ignore items with under 1,000 impressions.
+  - Don't report new campaigns that are still in a learning phase as failures.
+  - Check whether campaigns share a budget before advising budget moves.
+  - If the user disputes a number, re-pull the data before conceding.
+- **Answer shape:** conclusion first, then business impact, then next actions. Close with a one-line-per-pull "How I got this".
 
 ## Core principles
 
@@ -87,9 +99,9 @@ For one-off questions the bundled scripts weren't designed for ("what's the spen
 ## Other Claude capabilities to leverage
 
 **Built-in document skills.** When the deliverable is a file:
-- Slide decks (the executive overview is the prime case) → use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md`
-- Word documents (handouts, memos, board reports) → use the `docx` skill at `/mnt/skills/public/docx/SKILL.md`
-- Spreadsheets (pacing tables, channel comparisons) → use the `xlsx` skill at `/mnt/skills/public/xlsx/SKILL.md`
+- Slide decks (the executive overview is the prime case) → use the `pptx` skill, if available
+- Word documents (handouts, memos, board reports) → use the `docx` skill, if available
+- Spreadsheets (pacing tables, channel comparisons) → use the `xlsx` skill, if available
 
 Read the relevant SKILL.md *before* building any file. The slide-deck workflow especially depends on this — slides have visual rules that don't apply to docs.
 
@@ -97,7 +109,7 @@ Read the relevant SKILL.md *before* building any file. The slide-deck workflow e
 
 **Web search.** Useful for industry benchmarks (CPA / ROAS norms for the user's category), recent platform changes that might explain anomalies, or context for board-level narratives.
 
-**Clarifying questions.** When you need a multiple-choice answer to proceed (which attribution model, which time window, which currency conversion approach), use the `ask_user_input_v0` tool. Cleaner than asking in prose on mobile.
+**Clarifying questions.** When you need a multiple-choice answer to proceed (which attribution model, which time window, which currency conversion approach), use a multiple-choice question tool if one is available (`ask_user_input_v0` on claude.ai, `AskUserQuestion` in Claude Code). Cleaner than asking in prose on mobile.
 
 ## When to use the bundled workflows
 
@@ -121,7 +133,7 @@ Read `references/workflows.md` when the user's request matches.
 - `scripts/annual_planner.py` — analyzes 12+ months of channel-level data, classifies channels by stability and growth, models budget scenarios for next period.
 - `scripts/channel_investment_case.py` — given current channel saturation signals and reference benchmarks, builds the analytical case for adding a new channel.
 - `scripts/efficiency_tracker.py` — tracks CAC, payback period, MER, and other committed KPIs against targets; surfaces gaps.
-- `scripts/unit_economics.py` — computes blended and channel-level CAC and LTV from ad-platform spend + CRM/ecommerce revenue data.
+- `scripts/unit_economics.py` — computes cohort and blended CAC and LTV from ad-platform spend + CRM/ecommerce revenue data (run per channel for channel-level).
 
 ## Bundled templates
 
@@ -134,12 +146,14 @@ Read `references/workflows.md` when the user's request matches.
 
 ## Things to watch for
 
-**Attribution is political.** Last-click ROAS on Facebook, data-driven ROAS in Google Ads, and a multi-touch model the company runs separately will all show different numbers. When the user asks "which channel has the best ROAS," surface the attribution model behind the comparison before recommending shifts.
+**Attribution is political.** Facebook's 7-day-click / 1-day-view ROAS, data-driven ROAS in Google Ads, and a multi-touch model the company runs separately will all show different numbers. When the user asks "which channel has the best ROAS," surface the attribution model behind the comparison before recommending shifts.
 
-**Run rates lie when spend is lumpy.** A campaign launched mid-month and just hitting full pace will under-forecast with a naive daily-average. The pacing script handles this with daily data, but flag the assumption explicitly.
+**Run rates lie when spend is lumpy.** A campaign launched mid-month and just hitting full pace will under-forecast with a naive daily-average. The pacing script uses the month-to-date daily average, so flag the assumption explicitly; if spend ramped mid-month, project from the recent daily rate yourself.
 
 **Quarterly reviews need a "what we tried" section.** The temptation is to report only what worked. Leaders trust analysts more when the review names what was tested that didn't work and what was learned. Include this when the data supports it.
 
-**Currency normalization.** When aggregating across markets, convert to a single currency before computing ROAS or ranking. Surface the conversion approach (period-average, end-of-period, FX-fixed for planning) — don't assume.
+**Currency normalization.** When aggregating across markets, convert to a single currency before computing ROAS or ranking (some sources offer converted cost fields, e.g. Google Ads `Cost_usd`). Surface the conversion approach (period-average, end-of-period, FX-fixed for planning) — don't assume.
+
+**Acting on recommendations.** These workflows analyze and recommend. When the user wants to apply a budget change, hand off to the `campaign-management` skill, with explicit approval for each change.
 
 **Budget-shift recommendations need guardrails.** A naive "shift 30% from the worst channel to the best" can backfire because channels often have diminishing returns above their current spend ceiling. Default to 15–20% and explicitly call out that the recommendation assumes the destination has remaining capacity.

@@ -132,7 +132,7 @@ def main():
     for win in (30, 60, 90):
         w = windows[win]
         roas = w["value"] / args.event_cost if args.event_cost > 0 else None
-        out_stream.write(f"{win}d{'':<10}{w['opps']:>8}${w['value']:>14,.0f}{w['closed_won']:>8}${w['won_value']:>14,.0f}")
+        out_stream.write(f"{str(win) + 'd':<12}{w['opps']:>8}{'$' + format(w['value'], ',.0f'):>16}{w['closed_won']:>8}{'$' + format(w['won_value'], ',.0f'):>16}")
         out_stream.write(f"{roas:>17.2f}x\n" if roas is not None else f"{'n/a':>18}\n")
 
     out_stream.write(f"\n--- Per attendee ---\n")

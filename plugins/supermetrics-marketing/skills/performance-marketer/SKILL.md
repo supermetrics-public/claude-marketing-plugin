@@ -11,13 +11,25 @@ This skill helps performance marketers analyze paid campaigns across Google Ads,
 
 These workflows rely on the **Supermetrics connector for Claude**, which pulls live data from connected ad platforms. Before running anything, check that the connector is active — look for Supermetrics tools in this session (e.g. `data_query`, `accounts_discovery`, `field_discovery`).
 
-If they aren't present, the user doesn't have the connector installed yet. Stop and prompt them:
+If they aren't present, the user hasn't signed in to the bundled connector yet (or is on claude.ai without the plugin's connector). Stop and prompt them:
 
-> This workflow needs the Supermetrics connector for Claude to pull your live ad data. You can install it at https://claude.ai/directory/connectors/cc599e7b-8c59-4e89-9bf0-36d47bb9ec80
+> This workflow needs the Supermetrics connector for Claude to pull your live ad data. It ships with this plugin — run `/mcp`, select **supermetrics** and sign in (a free trial account works). Then run `/supermetrics-marketing:setup` to connect your platforms.
 >
-> Once it's installed, authenticate and connect at least one ad platform (Google Ads, Facebook Ads, LinkedIn Ads, etc.).
+> Once signed in, connect at least one ad platform (Google Ads, Facebook Ads, LinkedIn Ads, etc.).
 
 Don't fabricate placeholder data, and don't ask the user to paste a CSV unless they explicitly prefer that route.
+
+## Before you analyze
+
+- **Load the business profile.** Call `manage_business_context` (`get`) for saved targets, budgets and known context, and judge results against those rather than generic benchmarks (see the `business-profile` skill).
+- **Check tracking first.** If platform conversions and GA4 or backend numbers disagree by more than 20%, or spend continues with zero conversions, say so before any optimization advice. See `/supermetrics-marketing:tracking-check`.
+- **Evidence discipline:**
+  - Treat changes based on fewer than about 10 conversions as noise.
+  - Ignore items with under 1,000 impressions.
+  - Don't report new campaigns that are still in a learning phase as failures.
+  - Check whether campaigns share a budget before advising budget moves.
+  - If the user disputes a number, re-pull the data before conceding.
+- **Answer shape:** conclusion first, then business impact, then next actions. Close with a one-line-per-pull "How I got this".
 
 ## Core principles
 
@@ -62,7 +74,7 @@ If you can't name the headline, the visualization isn't ready — the analysis p
 
 For data visualizations in chat, build a React component using Recharts (available in the artifact environment). Inline artifacts are the right default — they render immediately and the user doesn't have to leave the conversation.
 
-For one-off conceptual visuals (e.g. funnel diagrams, flowcharts) that aren't strictly chart-able, use the `visualize:show_widget` tool instead.
+For one-off conceptual visuals (e.g. funnel diagrams, flowcharts) that aren't strictly chart-able, use a diagram or widget tool if one is available, otherwise a simple inline SVG or Mermaid diagram.
 
 ### Standard color palette
 
@@ -89,9 +101,9 @@ The bundled scripts handle repeatable patterns. For one-off questions ("does ad 
 ## Other Claude capabilities to leverage
 
 **Built-in document skills.** When a workflow's final step is a file deliverable:
-- Word documents (optimization reports, recommendations) → use the `docx` skill at `/mnt/skills/public/docx/SKILL.md`
-- Spreadsheets (campaign performance tables for sorting/filtering) → use the `xlsx` skill at `/mnt/skills/public/xlsx/SKILL.md`
-- Slide decks (creative review presentations) → use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md`
+- Word documents (optimization reports, recommendations) → use the `docx` skill, if available
+- Spreadsheets (campaign performance tables for sorting/filtering) → use the `xlsx` skill, if available
+- Slide decks (creative review presentations) → use the `pptx` skill, if available
 
 Read the relevant SKILL.md *before* writing any code or building any file.
 
@@ -99,7 +111,7 @@ Read the relevant SKILL.md *before* writing any code or building any file.
 
 **Web search.** Useful for industry benchmarks, recent platform policy changes (e.g. "new Meta attribution defaults"), or competitive context. Don't over-use it — most performance marketing answers come from the user's own data.
 
-**Clarifying questions.** When a multiple-choice question would resolve ambiguity (attribution window, time period, scope), use the `ask_user_input_v0` tool. It renders tappable buttons rather than asking the user to type — much faster on mobile.
+**Clarifying questions.** When a multiple-choice question would resolve ambiguity (attribution window, time period, scope), use a multiple-choice question tool if one is available (`ask_user_input_v0` on claude.ai, `AskUserQuestion` in Claude Code). It renders tappable buttons rather than asking the user to type — much faster on mobile.
 
 ## When to use the bundled workflows
 
@@ -120,7 +132,7 @@ Read `references/workflows.md` when the user's request matches.
 - `scripts/wow_comparison.py` — compute week-over-week deltas (absolute and percentage) for any metric, flagging changes outside a configurable threshold.
 - `scripts/ad_fatigue_detector.py` — identify ads exceeding a frequency threshold with declining CTR over a configurable window.
 - `scripts/cpa_ranker.py` — rank ads by cost per acquisition with optional grouping by ad format, placement, or campaign.
-- `scripts/daily_check.py` — cross-platform daily overview with automatic anomaly flagging on CPC, CPA, conversion volume, and spend pacing.
+- `scripts/daily_check.py` — cross-platform daily overview with automatic anomaly flagging on spend pacing, CPA, ROAS, and zero-conversion days.
 - `scripts/search_term_auditor.py` — analyzes a Google Ads or Microsoft Ads search term report; identifies high-cost low-conversion queries and proposes negative keywords.
 - `scripts/attribution_comparator.py` — compares conversion counts across platform-reported and GA4-measured views, surfaces divergence per channel.
 - `scripts/budget_optimizer.py` — given channel-level ROAS data and a target spend, models a recommended reallocation with diminishing-returns dampening.
@@ -141,6 +153,8 @@ Each script takes CSV input and produces a clean table — which you then turn i
 **Naming conventions vary.** When a user references a campaign by name, search broadly. If multiple campaigns match, list them and let the user pick.
 
 **Time windows matter.** "Last 7 days" can mean rolling 7-day or calendar week. When ambiguous, ask once, then remember the convention.
+
+**Acting on recommendations.** These workflows analyze and recommend. When the user wants to apply a change (pause, budget shift, negatives), hand off to the `campaign-management` skill, with explicit approval for each change.
 
 **Recommendations should be specific.** "Pause underperforming ads" is not a recommendation. "Pause ad ABC123 (CPA $84, 3.2x account average) and shift its $200/day to ad XYZ789 (CPA $19)" is. Always aim for the second version.
 

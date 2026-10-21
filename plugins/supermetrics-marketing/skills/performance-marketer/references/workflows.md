@@ -9,7 +9,7 @@ Seven workflow patterns for the most common performance marketing analysis tasks
 **Platforms typically involved:** LinkedIn Ads, Facebook Ads, Google Ads. Confirm if the user has specific platforms in mind.
 
 ### Step 1 — Clarify the comparison (only if ambiguous)
-If the user hasn't specified the time window or scope, use `ask_user_input_v0` to clarify:
+If the user hasn't specified the time window or scope, use a multiple-choice question tool if available to clarify:
 - Time window: rolling 7-day, calendar week, last 30 days, etc.
 - Scope: campaign level, ad set level, or ad level
 
@@ -39,7 +39,7 @@ Whatever you build, sort by the metric of interest (don't leave alphabetical), h
 Build from `assets/optimization_doc.md`. Be specific: name ads, give dollar amounts, identify segments by their actual labels (age 25–34, mobile, iOS).
 
 ### Step 6 — Package the deliverable
-Default delivery is inline markdown — fast, no friction. If the user asks for something they can share or save, the right tool depends on what they want:
+Default delivery is inline markdown — fast, no friction. If the user reviews this weekly, offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user asks for something they can share or save, the right tool depends on what they want:
 - A Word doc to send around → use the `docx` skill
 - A spreadsheet to sort and filter → use the `xlsx` skill
 - A message to post in Slack (if a Slack connector is available) → adapt the recommendation to Slack tone (shorter, no formal greeting)
@@ -47,7 +47,7 @@ Default delivery is inline markdown — fast, no friction. If the user asks for 
 Don't overwhelm the user with options up front. Pick the sensible default and let them redirect.
 
 ### Common variations
-- **By ad set instead of campaign** — re-run step 2 with `ad_set_name` as the grouping dimension.
+- **By ad set instead of campaign** — re-run step 2 grouped by ad set (Facebook Ads `adset_name`, Google Ads `Adgroupname`).
 - **Just one platform** — drop the cross-channel framing in step 4.
 - **Compare to last month instead** — swap the time windows in step 2; the rest is identical.
 - **Add lead quality from a CRM** — if a HubSpot or Salesforce connector is active, pull MQL conversion rate by source and join with the ad-platform CPA. The combined view ("$50 ad CPA but only 8% become MQLs vs another channel's $80 ad CPA with 35% MQLs") is more useful than ad-platform CPA alone. Skip if the CRM connector isn't available.
@@ -58,12 +58,14 @@ Don't overwhelm the user with options up front. Pick the sensible default and le
 
 **When to use:** the user suspects ad creatives are burning out — previously strong ads losing CTR, climbing frequency, rising CPC. Often ends with notifying the creative team about which ads need refresh.
 
-**Platforms typically involved:** Facebook Ads (frequency is a Facebook-native metric), Google Ads. LinkedIn Ads has its own frequency concept when available.
+**Platforms typically involved:** Facebook Ads (`Frequency`), TikTok Ads (`frequency`), Google Ads (`avg_impr_frequency_per_user`). LinkedIn Ads has no frequency field; compute impressions ÷ reach (`approximateUniqueImpressions`).
 
 ### Step 1 — Pull the data
 > Pull the last 30 days of performance data grouped by ad name, with impressions, frequency, CTR, and CPC.
 
 Include `ad_id` if the user will need to act on this in-platform.
+
+Frequency can't be summed or averaged across days (daily values understate it). Pull it per ad for the recent window as a separate query and put that value in the `frequency` column of the recent-window rows before running the script.
 
 ### Step 2 — Identify fatigued ads
 Use `scripts/ad_fatigue_detector.py`. Default thresholds: frequency >3.5 and CTR decline >20% week-over-week. If the user wants different thresholds, accept them and pass to the script.
@@ -98,7 +100,7 @@ Build the email body using `assets/creative_refresh_email.md`. The default deliv
 ### Step 1 — Pull the data
 > Pull the last 14 days for [campaign name] across [platforms], broken down by individual ad name and ad format.
 
-`ad_format` matters here — is video beating static? Include thumbnail/preview links if Supermetrics returns them.
+Format matters here — is video beating static? The field differs by platform (Facebook Ads `creative_object_type`, Google Ads `AdFormatType`); name the column `ad_format` for the script. Facebook Ads also returns `creative_thumbnail_url`.
 
 ### Step 2 — Rank by efficiency
 Use `scripts/cpa_ranker.py` with `--group-by ad_format` to get both: top ads by CPA and the format-level comparison.
@@ -131,15 +133,15 @@ Default delivery is inline markdown. If the user wants a spreadsheet they can ha
 **Platforms typically involved:** all connected ad platforms (Google Ads, Facebook Ads, LinkedIn Ads, TikTok Ads, Microsoft Ads, etc.).
 
 ### Step 1 — Pull yesterday and the trailing baseline
-> Pull yesterday's spend, impressions, clicks, conversions, CPA, and ROAS across all connected ad platforms. Also pull the trailing 7-day average for the same metrics, excluding yesterday.
+> Pull daily spend, impressions, clicks, conversions, and conversion value for the last 8 days (yesterday plus the 7 days before) across all connected ad platforms.
 
-The baseline matters — yesterday in isolation is meaningless. The comparison to the trailing average is what surfaces anomalies.
+The baseline matters — yesterday in isolation is meaningless. The script computes the trailing average from the daily rows; the comparison is what surfaces anomalies.
 
 ### Step 2 — Run the daily check
-Use `scripts/daily_check.py`. The script computes yesterday-vs-baseline ratios per channel and per campaign, and flags anomalies on:
+Use `scripts/daily_check.py`. The script computes yesterday-vs-baseline ratios per channel and flags anomalies on:
 - Spend ±25% off the daily baseline (over- or under-pacing)
 - CPA ±30% off (cost spike)
-- Zero conversions on a campaign that normally produces conversions (tracking issue suspected)
+- Zero conversions on a channel that normally produces conversions (tracking issue suspected)
 - ROAS down >20% (efficiency drop)
 
 ### Step 3 — Visualize the morning view
@@ -153,7 +155,7 @@ When the user has many channels (8+), a small-multiples grid — one mini bar ch
 Build from `assets/daily_standup_summary.md`. The summary has three sections: **what happened** (the headline), **what to act on today** (specific campaigns or ad sets, with the action), **what to watch** (early signals that aren't yet actionable).
 
 ### Step 5 — Output
-Default delivery: inline markdown. If the user wants this delivered as a recurring Slack message and a Slack connector is active, format it for Slack tone (shorter, no formal greeting) and offer to post.
+Default delivery: inline markdown. For a check the user reopens every morning, offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user wants this delivered as a recurring Slack message and a Slack connector is active, format it for Slack tone (shorter, no formal greeting) and offer to post.
 
 ### Common variations
 - **Just one platform** — filter to a single platform in step 1.
@@ -171,7 +173,7 @@ Default delivery: inline markdown. If the user wants this delivered as a recurri
 ### Step 1 — Pull the search term report
 > Pull the search term report from [Google Ads / Microsoft Ads] for the last 30 days, including search term, matched keyword, campaign, ad group, clicks, cost, and conversions.
 
-The search term report is the granular log of actual user queries that triggered the ads — distinct from the keyword list, which is what the user bid on. Mismatch between intent and actual query is where waste lives.
+Fields: Google Ads `Searchterm` (with `Keyword`, `Matchtype`), Microsoft Ads `SearchQuery`. The search term report is the granular log of actual user queries that triggered the ads — distinct from the keyword list, which is what the user bid on. Mismatch between intent and actual query is where waste lives.
 
 ### Step 2 — Audit the terms
 Use `scripts/search_term_auditor.py`. The script flags queries that:
@@ -196,7 +198,7 @@ Default delivery: the table as a spreadsheet ready for ad-platform upload, using
 
 ### Common variations
 - **Just one campaign** — filter to a single campaign in step 1.
-- **Conservative thresholds** — start with $50 wasted-spend threshold instead of $200, to surface smaller wins.
+- **Smaller wins** — lower `--min-cost` below its $50 default (e.g. $20).
 - **Already-running negatives** — if the user provides their current negative keyword list, exclude those terms from the recommendations.
 
 ---
@@ -210,7 +212,7 @@ Default delivery: the table as a spreadsheet ready for ad-platform upload, using
 ### Step 1 — Pull each view
 > Pull the last 30 days of conversion counts per channel from [Google Ads, Facebook Ads, LinkedIn Ads] using each platform's default attribution. Then pull the same channels' conversions from Google Analytics 4 using GA4's default attribution.
 
-Confirm with the user what each platform's attribution setting is — Facebook's 7-day-click / 1-day-view is the default; Google's is data-driven; GA4 defaults to data-driven. If the user has customized any of these, note it explicitly.
+Check each platform's attribution setting — Facebook Ads `attribution_setting` (default 7-day click / 1-day view), Google Ads `AttributionModel` (ConversionAction report; data-driven by default); GA4 reporting defaults to data-driven. If any are customized, note it explicitly.
 
 ### Step 2 — Reconcile
 Use `scripts/attribution_comparator.py`. The script joins on channel name and computes the divergence between each platform's self-reported conversions and GA4's view. Flags channels where the gap exceeds ±25%.
@@ -250,7 +252,7 @@ Default: chart + framing inline as markdown. If the deliverable is going to a fi
 Daily granularity matters — the script needs it to detect whether ROAS holds at higher spend or compresses.
 
 ### Step 2 — Get the target spend
-Ask the user (via `ask_user_input_v0` if needed): what's the total budget for next period? Same as current, ±10%, or a specific number?
+Ask the user (with a multiple-choice question tool if available): what's the total budget for next period? Same as current, ±10%, or a specific number?
 
 ### Step 3 — Run the optimizer
 Use `scripts/budget_optimizer.py`. The script:
@@ -295,4 +297,4 @@ The "Choosing the right visualization" framework in the SKILL.md gives you the d
 
 ## A note on data freshness
 
-Supermetrics returns data with a few hours of latency depending on the platform. Facebook can be near-real-time; LinkedIn often lags 24 hours; Google Ads conversions can keep updating for up to 72 hours. When the user is making same-day decisions, surface this latency so they know what "yesterday's data" actually means.
+Platforms report with different delays. Facebook is close to real time; LinkedIn can lag up to 24 hours. Google Ads and Meta credit conversions back to the click or impression date, so the last few days keep filling in until the attribution window closes. When the user is making same-day decisions, surface this so they know what "yesterday's data" actually means.

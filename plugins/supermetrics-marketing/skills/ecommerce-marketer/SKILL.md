@@ -11,15 +11,27 @@ The stakes spike around promotional campaigns — Black Friday, Cyber Monday, ho
 
 ## Required: the Supermetrics connector
 
-These workflows rely on the **Supermetrics connector for Claude**. Both workflows specifically need Google Ads and Facebook Ads at minimum, with purchase conversion tracking properly configured (conversion value populated, not just purchase count).
+These workflows rely on the **Supermetrics connector for Claude**. The core workflows need your main ad platforms (typically Google Ads and Facebook Ads) with purchase conversion tracking properly configured (conversion value populated, not just purchase count).
 
 Before running anything, check that the connector is active — look for Supermetrics tools (`data_query`, `accounts_discovery`, etc.). If they aren't present, prompt the user:
 
-> This workflow needs the Supermetrics connector for Claude. Install it at https://claude.ai/directory/connectors/cc599e7b-8c59-4e89-9bf0-36d47bb9ec80
+> This workflow needs the Supermetrics connector for Claude. It ships with this plugin — run `/mcp`, select **supermetrics** and sign in (a free trial account works). Then run `/supermetrics-marketing:setup` to connect your platforms.
 >
 > Connect at least Google Ads and Facebook Ads with purchase conversion tracking set up. These workflows depend on revenue data, not just purchase counts.
 
 If purchase tracking is misconfigured (conversion values missing or zeroed), surface this immediately — ROAS analysis without conversion values is meaningless.
+
+## Before you analyze
+
+- **Load the business profile.** Call `manage_business_context` (`get`) for saved targets, budgets and known context, and judge results against those rather than generic benchmarks (see the `business-profile` skill).
+- **Check tracking first.** If platform conversions and GA4 or backend numbers disagree by more than 20%, or spend continues with zero conversions, say so before any optimization advice. See `/supermetrics-marketing:tracking-check`.
+- **Evidence discipline:**
+  - Treat changes based on fewer than about 10 conversions as noise.
+  - Ignore items with under 1,000 impressions.
+  - Don't report new campaigns that are still in a learning phase as failures.
+  - Check whether campaigns share a budget before advising budget moves.
+  - If the user disputes a number, re-pull the data before conceding.
+- **Answer shape:** conclusion first, then business impact, then next actions. Close with a one-line-per-pull "How I got this".
 
 ## Core principles
 
@@ -82,14 +94,14 @@ For heatmaps, use a diverging red-to-green scale where the midpoint is the metri
 
 ### Ad hoc analysis
 
-For one-off questions outside the two bundled workflows ("what's the AOV distribution across our top SKUs in this campaign?", "is there a customer-LTV difference between Facebook and Google traffic?", "how does promo-period purchase intent vary by audience segment?"), write fresh analysis code.
+For one-off questions outside the bundled workflows ("what's the AOV distribution across our top SKUs in this campaign?", "is there a customer-LTV difference between Facebook and Google traffic?", "how does promo-period purchase intent vary by audience segment?"), write fresh analysis code.
 
 ## Other Claude capabilities to leverage
 
 **Built-in document skills.** When the deliverable is a file:
-- Word documents (post-promo retrospectives, day-of-week strategy memos) → use the `docx` skill at `/mnt/skills/public/docx/SKILL.md`
-- Spreadsheets (daily promo monitoring sheets, campaign-by-campaign breakdowns) → use the `xlsx` skill at `/mnt/skills/public/xlsx/SKILL.md`
-- Slide decks (post-Black-Friday leadership readouts) → use the `pptx` skill at `/mnt/skills/public/pptx/SKILL.md`
+- Word documents (post-promo retrospectives, day-of-week strategy memos) → use the `docx` skill, if available
+- Spreadsheets (daily promo monitoring sheets, campaign-by-campaign breakdowns) → use the `xlsx` skill, if available
+- Slide decks (post-Black-Friday leadership readouts) → use the `pptx` skill, if available
 
 Read the relevant SKILL.md before building.
 
@@ -97,7 +109,7 @@ Read the relevant SKILL.md before building.
 
 **Web search.** Useful for recent platform changes affecting attribution (e.g. iOS 14.5+ effects on Facebook), industry promo benchmarks (typical BFCM ROAS lift), or fresh research on cart abandonment / returns trends that explain anomalies.
 
-**Clarifying questions.** Use `ask_user_input_v0` for multiple-choice — attribution model preference, baseline window for anomaly detection (rolling 6-day vs same-week-last-year), which campaigns count as the promo set.
+**Clarifying questions.** Use a multiple-choice question tool if one is available (`ask_user_input_v0` on claude.ai, `AskUserQuestion` in Claude Code) for multiple-choice — attribution model preference, baseline window for anomaly detection (rolling 6-day vs same-week-last-year), which campaigns count as the promo set.
 
 ## When to use the bundled workflows
 
@@ -140,6 +152,8 @@ Read `references/workflows.md` when the user's request matches.
 **iOS 14.5+ degraded Facebook attribution.** If Facebook ROAS looks substantially lower than historical, that's partially measurement degradation, not real decline. Mention Conversions API (CAPI) as a measurement improvement if the user hasn't moved to it.
 
 **Purchases data has return lag.** A purchase recorded today might be refunded next week, but most platforms don't retroactively update. Build a small mental buffer (5–10% for apparel; lower for many other categories) when making decisions on yesterday's ROAS during a promo.
+
+**Acting on recommendations.** These workflows analyze and recommend. When the user wants to apply a change (pause an ad set, shift budget), hand off to the `campaign-management` skill, with explicit approval for each change.
 
 **Day-of-week effects can be confounded by ad schedule effects.** If campaigns run on a dayparting schedule that puts more spend on Saturdays, the apparent "Saturday is great" finding might be because the algorithm has more budget to optimize. Pull data on a per-dollar-spent basis (ROAS, conversion rate) rather than absolute volume.
 

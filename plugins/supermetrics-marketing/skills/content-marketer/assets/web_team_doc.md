@@ -33,7 +33,7 @@ If a proposed fix is wrong because of context the content team doesn't have (e.g
 **Current state:**
 - Sessions/month: [N]
 - Bounce rate: [X]%
-- Avg time on page: [Y] seconds
+- Avg engagement time: [Y] seconds
 - Conversion rate: [Z]%
 - Estimated lost conversions per month: ~[N]
 

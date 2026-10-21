@@ -9,12 +9,12 @@ Seven workflow patterns demand gen managers run regularly: from reconciling ad p
 **Platforms typically involved:** Google Ads, LinkedIn Ads, and Google Analytics 4. GA4 is mandatory — without it this workflow can't run.
 
 ### Step 1 — Pull ad platform data, then GA4
-> Pull the last 30 days of spend and click data from the Google Ads and LinkedIn Ads accounts. Then pull session and goal conversion data for the same period from Google Analytics 4.
+> Pull the last 30 days of spend and click data from the Google Ads and LinkedIn Ads accounts. Then pull sessions and key events (conversions) for the same period from Google Analytics 4, by session source / medium.
 
-Two separate pulls. Do ad platforms first, confirm the data, then GA4 with matching channel grouping. If GA4 isn't connected, stop and tell the user this workflow requires it.
+Two separate pulls. Do ad platforms first, confirm the data, then GA4 split by `sessionSourceMedium` or `sessionCampaignName` (not default channel grouping, which lumps LinkedIn and Facebook into "Paid Social"). Map GA4 rows to the same channel names as the ad data before reconciling. If GA4 isn't connected, stop and tell the user this workflow requires it.
 
 ### Step 2 — Reconcile
-Use `scripts/funnel_reconciler.py`. The script joins by channel name and computes the divergence between platform-reported and GA4-measured outcomes. Channels where the click-to-session gap exceeds 25% get flagged as likely UTM/tracking issues.
+Use `scripts/funnel_reconciler.py --ad-platform ads.csv --ga4 ga4.csv`. The script joins by channel name (the `channel` column in both files must use identical values) and computes the divergence between platform-reported and GA4-measured outcomes. Channels where the click-to-session gap exceeds 25% get flagged as likely UTM/tracking issues.
 
 ### Step 3 — Visualize the reconciliation
 The question the chart needs to answer: **where's the leak — is each channel converting the traffic it bought, or losing it somewhere?**
@@ -31,11 +31,11 @@ Whichever you build, name the headline above the chart — "Two of four channels
 The recommendation should name a specific dollar amount, a source channel, a destination channel, and the expected impact on **GA4-measured** conversions (not just ad-platform conversions — that's the whole point).
 
 ### Step 5 — Update sales leadership
-Build from `assets/sales_leadership_email.md`. Default delivery is markdown inline. If the user wants it as a Word doc, use the `docx` skill. If Gmail is connected, offer to save as a draft.
+Build from `assets/sales_leadership_email.md`. Default delivery is markdown inline. If the user wants it as a Word doc, use the `docx` skill. If Gmail is connected, offer to save as a draft. If leadership wants to see this every month, offer to publish it as a live Studio dashboard (see the `studio-dashboards` skill).
 
 ### Common variations
 - **Adobe Analytics instead of GA4** — same workflow shape; Supermetrics has Adobe Analytics support, ask whether it's connected.
-- **Use last-click instead of GA4's default attribution** — GA4's default is data-driven; switching changes which channels look good. Ask the user which view they want and note the choice in the deliverable.
+- **Use last-click instead of GA4's default attribution** — GA4's default is data-driven; the model is a property-level setting, so the API returns whatever the property uses. Session-scoped dimensions (`sessionSourceMedium`) are last-click by nature; ask the user which view they want and note the choice in the deliverable.
 - **Join with CRM lead-quality data** — if HubSpot or Salesforce is connected, pull MQL conversion rate by source and join with the reconciliation. The combined view ("$50 ad CPA + 8% MQL rate" vs "$80 ad CPA + 35% MQL rate") changes the recommendation entirely.
 
 ---
@@ -52,7 +52,7 @@ Build from `assets/sales_leadership_email.md`. Default delivery is markdown inli
 The filter phrase is specific to the user's naming convention. Ask if unclear. The data needs to be at the ad / asset level, not just campaign level — different assets in the same campaign often perform very differently.
 
 ### Step 2 — Compare CPL and lead conversion rate
-Use `scripts/lead_efficiency.py`. Outputs platform-level CPL, lead-to-click ratio, CTR, and a comparison summary.
+Use `scripts/lead_efficiency.py` (columns: `platform`, `spend`, `clicks`, `impressions`, `leads`). Outputs platform-level CPL, lead-to-click ratio, CTR, and a comparison summary. For LinkedIn Lead Gen Forms, the lead count is the `oneClickLeads` field.
 
 ### Step 3 — Visualize the comparison
 The question the chart needs to answer: **which platform is more efficient, and by how much?**
@@ -82,7 +82,7 @@ Default delivery is markdown inline. If the user wants a Word doc, use the `docx
 
 **When to use:** the user is in B2B and wants to credit marketing channels with the pipeline they actually create — not just leads. This is the single most-requested demand gen analysis when a CRM connector is available.
 
-**Platforms typically involved:** ad platforms (LinkedIn Ads, Google Ads, Facebook Ads) + a CRM connector (HubSpot, Salesforce, Pipedrive, Zoho, Close, Odoo).
+**Platforms typically involved:** ad platforms (LinkedIn Ads, Google Ads, Facebook Ads) + a CRM connected in Supermetrics (HubSpot, Salesforce, Pipedrive, Zoho CRM, Close CRM, Odoo CRM). Useful fields: HubSpot `deal_amount`, `deal_stage`, `original_source`; Salesforce `opportunity_amount`, `opportunity_stage_name`, `opportunity_lead_source`. Confirm exact names with `field_discovery`.
 
 ### Step 1 — Pull spend and pipeline
 > Pull the last 90 days of ad spend by channel from [ad platforms]. Then pull opportunities created in the same period from [CRM], including opportunity amount, stage, and source/first-touch channel.
@@ -95,7 +95,7 @@ Confirm with the user how their CRM attributes channels to opportunities — mos
 State the attribution method explicitly in the output.
 
 ### Step 2 — Compute cost per opportunity and pipeline ROAS
-Use `scripts/pipeline_attribution.py`. Outputs per channel:
+Use `scripts/pipeline_attribution.py --spend spend.csv --opps opportunities.csv` (optional `--stage-filter`). Outputs per channel:
 - Total spend
 - Number of opportunities attributed
 - Total pipeline value (sum of opportunity amounts)
@@ -116,10 +116,10 @@ This view has limitations that need to be surfaced:
 - Opportunities can sit in pipeline for months. The 90-day window captures opps created, not opps closed.
 
 ### Step 5 — Build the report
-Use `assets/pipeline_attribution_report.md`. The audience is typically the VP of Sales or CRO; tone should be data-forward with explicit acknowledgment of attribution choices.
+Use `assets/pipeline_attribution_report.md`. The audience is typically the VP of Sales or CRO; tone should be data-forward with explicit acknowledgment of attribution choices. For a recurring pipeline review, offer a live Studio dashboard (`studio-dashboards` skill).
 
 ### Common variations
-- **Closed-won, not pipeline** — re-run for opportunities with `stage = closed-won`. Smaller numbers, longer time lag, but more defensible. Best for quarterly reviews.
+- **Closed-won, not pipeline** — re-run with `--stage-filter` set to the CRM's closed-won stage name. Smaller numbers, longer time lag, but more defensible. Best for quarterly reviews.
 - **Win rate by channel** — additional column: of opps from this channel, what % closed? Some channels generate lots of low-quality pipeline; this surfaces it.
 - **Deal size by channel** — average opportunity amount per channel. Often the highest-CPO channels generate the largest deals.
 
@@ -129,15 +129,17 @@ Use `assets/pipeline_attribution_report.md`. The audience is typically the VP of
 
 **When to use:** the user needs lead quality measurement, not just lead volume. CPL is the cheap version of this question; MQL-to-SQL conversion rate is the real answer.
 
-**Platforms typically involved:** ad platforms + CRM (HubSpot, Salesforce). Marketing automation (Marketo, HubSpot Marketing Email) if lead nurture is part of the journey.
+**Platforms typically involved:** ad platforms + CRM (HubSpot, Salesforce). Marketing automation (Marketo via the Adobe Engage connector, Eloqua, HubSpot Marketing Email) if lead nurture is part of the journey.
 
 ### Step 1 — Pull leads, MQLs, and SQLs by source
 > Pull the last 90 days of leads created from [CRM], grouped by lead source. For each lead, include whether they reached MQL status and SQL status, and the dates of each transition.
 
+In HubSpot (`HSCON`), the lifecycle date properties (`Became a lead / marketing qualified lead / sales qualified lead date`) and `original_traffic_source` give this per contact; in Salesforce, use the Leads report with `lead_source`, `lead_status` and `lead_converted_date`. HubSpot also has aggregate counts and average days to MQL/SQL in `HS`.
+
 The 90-day window matters — leads need time to progress through the funnel. Pulling last week's data won't show conversion rates because leads haven't had time to convert.
 
 ### Step 2 — Compute conversion rates per source
-Use `scripts/mql_quality.py`. Outputs per source:
+Use `scripts/mql_quality.py` (columns: `source`, `lead_created_date`, `mql_date`, `sql_date`, optional `spend` or `--spend-csv`). Outputs per source:
 - Total leads
 - MQL conversion rate (% of leads that became MQLs)
 - SQL conversion rate (% of MQLs that became SQLs)
@@ -176,13 +178,13 @@ Use `assets/lead_quality_diagnostic.md`. Audience: marketing operations or deman
 **Platforms typically involved:** LinkedIn Ads (the primary ABM ad platform) + CRM with target account list + GA4 or web analytics for engaged-session data.
 
 ### Step 1 — Get the target account list
-Ask the user (via `ask_user_input_v0` if needed): is the target account list maintained in the CRM (as an account property or list membership) or elsewhere? How many accounts are on it?
+Ask the user (multiple-choice if the client supports it): is the target account list maintained in the CRM (as an account property or list membership) or elsewhere? How many accounts are on it?
 
 ### Step 2 — Pull engagement signals
 For each target account, gather available engagement signals:
-- **From LinkedIn Ads:** impressions and clicks to accounts on the target list (LinkedIn supports account-list-based targeting)
+- **From LinkedIn Ads:** impressions and clicks by `memberCompanyName` (company demographics; LinkedIn hides values below its privacy threshold, so small accounts may not appear)
 - **From the CRM:** activities logged against the target account, meetings booked, opportunities created
-- **From GA4 (if available):** sessions from companies on the target list (some teams use Clearbit Reveal or similar for company identification)
+- **Website visits by company:** GA4 doesn't identify companies. Use a reverse-IP tool's export (e.g. Clearbit, 6sense) or HubSpot's `HSCON` contact/company data if available
 
 ### Step 3 — Compute account-level coverage and engagement
 Use `scripts/abm_engagement.py`. Outputs per account:
@@ -204,12 +206,12 @@ A funnel chart works: target list size → reached → engaged → opportunities
 A secondary view: a list view (top 20 most-engaged target accounts that aren't yet in pipeline), since those are the highest-value follow-up targets for sales.
 
 ### Step 5 — Build the report
-Use `assets/abm_engagement_report.md`. Audience: B2B marketing leader + sales counterparts running the ABM program together.
+Use `assets/abm_engagement_report.md`. Audience: B2B marketing leader + sales counterparts running the ABM program together. ABM programs are reviewed every few weeks, so offer to publish the ad and CRM side as a live Studio dashboard (`studio-dashboards` skill).
 
 ### Common variations
 - **Tier the target accounts** — Tier 1 (top 50) vs Tier 2 (next 200) may need different KPIs. Higher tiers should show deeper engagement.
 - **Compare ABM-touched vs untouched** — for accounts on the target list, do those that received ABM touches close at higher rates than those that didn't?
-- **Persona reach within accounts** — coverage isn't just account-level; it's persona-level within accounts. The CMO and the VP of Engineering need different messaging. Pull persona-level engagement from LinkedIn if the data supports it.
+- **Persona reach within accounts** — coverage isn't just account-level; it's persona-level within accounts. The CMO and the VP of Engineering need different messaging. Pull LinkedIn engagement by `memberSeniority` or `memberJobFunction` (aggregate, not per account).
 
 ---
 
@@ -217,18 +219,18 @@ Use `assets/abm_engagement_report.md`. Audience: B2B marketing leader + sales co
 
 **When to use:** the user runs both paid acquisition and email nurture and wants to see how they interact — does email nurture make paid clicks convert better? Does paid acquisition feed the email list usefully?
 
-**Platforms typically involved:** ad platforms + email marketing platforms (HubSpot Marketing Email, Marketo, Mailchimp, Klaviyo, Brevo, Campaign Monitor, ActiveCampaign, Omnisend) + CRM for the conversion data.
+**Platforms typically involved:** ad platforms + email marketing platforms (HubSpot Marketing Email, Adobe Engage/Marketo, Mailchimp, Klaviyo, Brevo, Campaign Monitor, ActiveCampaign, Omnisend) + CRM for the conversion data.
 
 ### Step 1 — Pull the email side
 > Pull the last 90 days of email campaign performance from [email platform]: campaigns sent, opens, clicks, conversions, and revenue attributed.
 
-Also pull list growth: how many new subscribers were added in the period, and from which sources (paid sign-up, organic site, in-app, etc.).
+Also pull list growth (e.g. Mailchimp's ListGrowthHistory report). Subscriber source by channel usually comes from the CRM (HubSpot `original_traffic_source`) or GA4 sign-up events by source, not from the email platform.
 
 ### Step 2 — Pull the paid side
 > Pull the last 90 days of paid acquisition data, focusing on conversions that include both "purchase" / "lead" type and "newsletter signup" / "email subscription" type.
 
 ### Step 3 — Join the views
-Use `scripts/email_paid_funnel.py`. The script:
+Use `scripts/email_paid_funnel.py` (columns: `channel`, `clicks`, `spend`, `subscribed`, `converted_direct`, `converted_via_email`, `still_nurturing`). The per-channel subscriber and conversion counts usually have to be assembled from CRM or GA4 data first. The script:
 - Computes paid-to-email-subscriber rate (of paid clicks, how many turned into email subscribers)
 - Computes email-to-conversion rate (of nurtured subscribers, how many converted within the period)
 - Identifies the channels that subscribe-then-convert at high rates (efficient acquisition through nurture) vs convert directly (efficient acquisition without nurture)
@@ -257,13 +259,13 @@ Use `assets/integrated_funnel_summary.md`. The interesting finding is usually on
 
 **When to use:** the user runs webinars, ebooks, whitepapers, or other gated content as part of demand gen, and wants to measure the full funnel from paid promotion through registration, attendance/download, and downstream MQL behavior.
 
-**Platforms typically involved:** ad platforms + HubSpot Marketing Forms (or whichever form platform captures registrations) + CRM for downstream tracking + email platform for the registration confirmation and follow-up.
+**Platforms typically involved:** ad platforms + HubSpot Marketing Forms (views and submissions per form) or GA4 form key events + CRM for downstream tracking (HubSpot `HSCON` contact `first_conversion`/`recent_conversion` and lifecycle dates, or the Salesforce Campaigns report: responses, leads and opportunities per campaign) + email platform. Webinar attendance (Zoom, ON24, etc.) is not a Supermetrics source; ask the user for an export.
 
 ### Step 1 — Pull paid promotion data
 > Pull the last 30-60 days of paid ad performance for campaigns promoting the specific content asset (webinar, ebook, etc.). Include spend, clicks, and platform-reported conversions.
 
 ### Step 2 — Pull registrations
-> Pull form submissions for [content asset] from [form platform / CRM], including UTM source for each registration.
+> Pull form submissions for [content asset] from [form platform / CRM], including source for each registration (e.g. HubSpot contact `original_traffic_source`).
 
 ### Step 3 — Pull downstream behavior
 For each registration, pull from the CRM:
@@ -272,7 +274,7 @@ For each registration, pull from the CRM:
 - Did they enter pipeline within 60 days?
 
 ### Step 4 — Compute the funnel per channel
-Use `scripts/gated_content_funnel.py`. Outputs per paid channel:
+Use `scripts/gated_content_funnel.py` (columns: `channel`, `spend`, `clicks`, `registrations`, `attended_or_downloaded`, `mqls_within_30_days`, optional `opportunities_within_60_days`). Outputs per paid channel:
 - Spend
 - Clicks
 - Registrations (and registration rate from clicks)

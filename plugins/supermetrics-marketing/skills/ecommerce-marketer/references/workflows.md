@@ -31,7 +31,7 @@ If a heatmap is overkill for the user's data shape, a sorted horizontal bar char
 Use `assets/dow_budget_strategy.md`. The recommendation should propose a weighting (e.g. Tuesday +20%, Friday -15%) and explicitly flag what would invalidate the strategy — usually a promo period scrambling normal patterns.
 
 ### Step 5 — Output
-Default delivery: charts in chat plus a markdown recommendation. If the user wants a Word doc to share with the team, use the `docx` skill.
+Default delivery: charts in chat plus a markdown recommendation. For a ROAS view the team will reopen, offer once to publish it as a live Studio dashboard (`studio-dashboards` skill). If the user wants a Word doc to share with the team, use the `docx` skill.
 
 ### Common variations
 - **Add TikTok, Pinterest** — same workflow, expand the platform list. Watch for platforms with low spend producing noisy daily numbers.
@@ -77,7 +77,7 @@ Use `assets/media_buyer_alert_email.md`. The email needs to be short, specific (
 Default delivery: markdown inline so the user reviews before sending. If Gmail is connected, offer to save as a draft. If the user prefers Slack and a Slack connector is available, post the alert to the relevant channel instead — often faster during a promo when the media buying team is fielding many messages per hour.
 
 ### Common variations
-- **Baseline isn't 6 days, it's same-promo-week-last-year** — pass a baseline CSV via `--baseline-csv`. The script accepts it.
+- **Baseline isn't 6 days, it's same-promo-week-last-year** — the script only supports a trailing baseline (`--baseline-days`); compute ratios against last year's promo week ad hoc.
 - **Monitor ROAS, not cost per purchase** — same workflow, swap the metric. Pass `--metric roas`.
 - **Hourly granularity, not daily** — supported on Facebook and Google but noise floor is high. Use only for high-spend ($50k+/day) campaigns.
 
@@ -136,7 +136,7 @@ Use `assets/sku_performance_report.md`. The doc should recommend specific produc
 ### Step 2 — Pull purchases segmented by customer type
 > Pull purchases segmented into "new customer" (first-time buyer) and "returning customer" (repeat) from [Shopify / GA4]. Break out by channel.
 
-If GA4 has the customer-type dimension available on conversions, prefer that source — it stitches across channels. If only the ecommerce backend has it, use that.
+Prefer the store's own flag (Shopify `order_is_returning_customer`, with `order_utm_source` for channel) — it is purchase-based. GA4's `newVsReturning` counts prior sessions, not prior purchases, so it isn't a buyer split; GA4's first-time purchaser metrics are closer.
 
 ### Step 3 — Compute split ROAS
 Use `scripts/customer_type_roas.py`. Outputs per channel:
@@ -177,7 +177,6 @@ If channel attribution isn't on the order data, join with ad-platform purchase d
 ### Step 2 — Compute AOV and basket patterns
 Use `scripts/aov_analyzer.py`. Outputs:
 - AOV by channel
-- AOV trend over the period
 - Items per order distribution
 - AOV percentiles (P25, P50, P75, P90) to understand the distribution shape
 - Free-shipping-threshold proximity (% of orders just under common thresholds like $50, $75, $100)
