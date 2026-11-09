@@ -33,6 +33,9 @@ Then run `/supermetrics-marketing:setup`. It signs you in to Supermetrics with O
 - "Launch a paused Google Ads search campaign for our spring sale with a 50 EUR daily budget."
 - "Pause the ads with CPA over 2x target after showing me the list."
 - "Turn this weekly report into a live Studio dashboard I can share with my client."
+- "Which Search Console queries rank on page two with lots of impressions?"
+- "Schedule this Instagram post for Friday at 9am and reply to yesterday's comments."
+- "What's our Amazon ACoS by campaign, and which search terms should be negatives?"
 
 ## Slash commands
 
@@ -79,6 +82,24 @@ Four more skills work alongside these:
 | `studio-dashboards` | Publish any analysis as a live Supermetrics Studio dashboard that updates itself |
 | `business-profile` | Saves your targets, budgets and known context, and applies them to every analysis |
 | `get-started` | First-run sign-in, connecting a platform and a first report |
+
+## Platform skills
+
+Platform-specific know-how: the right data source, the fields that answer common questions, and the platform's quirks.
+
+| Skill | Covers |
+|---|---|
+| `google-search-console` | Organic clicks, impressions, CTR and position by query and page; traffic drops, quick-win keywords, branded vs non-branded |
+| `google-business-profile` | Calls, direction requests, website clicks, Maps and Search views, search terms and reviews by location |
+| `instagram` | Followers, reach, posts, reels, stories, best time to post, audience; competitor benchmarks from public profiles |
+| `facebook-pages` | Organic Page views, followers, post engagement, video and reels |
+| `linkedin-pages` | Company page followers and demographics, post performance, page views |
+| `youtube` | Views, watch time, subscribers, top videos, Shorts vs long-form, retention; public stats for any channel |
+| `social-media-publishing` | Publish and schedule posts, reply to and moderate comments on Instagram, LinkedIn company pages and Google Business Profile |
+| `microsoft-ads` | Microsoft Advertising (Bing Ads) search terms, negative keywords, impression share, and campaign changes |
+| `amazon-ads` | Sponsored Products, Brands and Display ACoS and ROAS, search terms, TACoS with Seller Central, Amazon DSP |
+| `email-marketing` | Klaviyo, Mailchimp and other email platforms: flows vs campaigns, subject lines, list health, email revenue |
+| `crm-pipeline` | HubSpot, Salesforce, Pipedrive and Zoho CRM pipeline by source, cost per MQL and per opportunity |
 
 Each workflow pulls data first and then analyzes it. Results come back as charts that colour each change by whether it's good or bad for the business. You can also get a Word doc, spreadsheet or deck when you need something to share.
 
