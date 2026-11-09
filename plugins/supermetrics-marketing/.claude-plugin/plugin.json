@@ -1,8 +1,8 @@
 {
   "name": "supermetrics-marketing",
   "displayName": "Supermetrics Ads & Marketing Analytics",
-  "description": "Marketing reporting, analytics and campaign management for Google Ads, Meta Ads, GA4, LinkedIn Ads, TikTok Ads, Microsoft Ads, Shopify, HubSpot and 150+ sources via Supermetrics. Find wasted spend, track ROAS and budget pacing, spot ad fatigue, launch and edit campaigns with your approval, and share live Studio dashboards. 42 workflows, daily checks and multi-account sweeps for agencies. Analysis never changes ad accounts; campaign writes need your OK and start paused.",
-  "version": "1.1.0",
+  "description": "Marketing reporting, analytics and campaign management for Google Ads, Meta Ads, GA4, Search Console, Instagram, LinkedIn, TikTok Ads, Microsoft Ads, Amazon Ads, Shopify, HubSpot and 150+ sources via Supermetrics. Find wasted spend, track ROAS and budget pacing, spot ad fatigue, launch and edit campaigns with your approval, schedule social posts and reply to comments, and share live Studio dashboards. 42 workflows, daily checks and multi-account sweeps for agencies. Analysis never changes ad accounts; campaign writes need your OK and start paused.",
+  "version": "1.2.0",
   "author": {
     "name": "Supermetrics",
     "email": "support@supermetrics.com",
